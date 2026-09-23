@@ -1,4 +1,10 @@
+# Local bot configuration and database
+/data/config.json
+/data/bot.db
+/data/bot.db-*
+
 # Byte-compiled / optimized / DLL files
+*.exe
 __pycache__/
 *.py[cod]
 *$py.class
