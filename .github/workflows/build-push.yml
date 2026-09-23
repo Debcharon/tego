@@ -32,15 +32,15 @@ jobs:
 
     - name: Build and push AMD64 image to Docker Hub
       run: |
-        docker buildx build --load --platform linux/amd64 -t microcharon/telegram-pm-chat-bot:latest-amd64 .
-        docker push microcharon/telegram-pm-chat-bot:latest-amd64
+        docker buildx build --load --platform linux/amd64 -t microcharon/tego:latest-amd64 .
+        docker push microcharon/tego:latest-amd64
 
     - name: Build and push ARM64 image to Docker Hub
       run: |
-        docker buildx build --load --platform linux/arm64 -t microcharon/telegram-pm-chat-bot:latest-arm64 .
-        docker push microcharon/telegram-pm-chat-bot:latest-arm64
+        docker buildx build --load --platform linux/arm64 -t microcharon/tego:latest-arm64 .
+        docker push microcharon/tego:latest-arm64
 
     - name: Create and push manifest to Docker Hub
       run: |
-        docker manifest create microcharon/telegram-pm-chat-bot:latest microcharon/telegram-pm-chat-bot:latest-amd64 microcharon/telegram-pm-chat-bot:latest-arm64 --amend
-        docker manifest push microcharon/telegram-pm-chat-bot:latest
+        docker manifest create microcharon/tego:latest microcharon/tego:latest-amd64 microcharon/tego:latest-arm64 --amend
+        docker manifest push microcharon/tego:latest

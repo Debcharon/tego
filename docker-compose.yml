@@ -1,7 +1,9 @@
-version: '3'
 services:
   app:
-    image: microcharon/telegram-pm-chat-bot:latest
+    build: .
+    image: tego:local
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN:-}
     volumes:
       - ./data:/app/data  # Modify the path to the local data directory
     restart: unless-stopped

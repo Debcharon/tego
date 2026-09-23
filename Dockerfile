@@ -1,18 +1,16 @@
-# Alpine Python 3.13 image as the base image
-FROM python:3.13-alpine
-# FROM python:3.13
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS build
+RUN apk add --no-cache ca-certificates
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY *.go ./
+COPY lang/ ./lang/
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /bot .
 
-# Set working directory
+FROM scratch
 WORKDIR /app
-
-# Copy files to working directory
-COPY . /app
-
-# Install dependencies required for the project
-RUN pip install -r requirements.txt
-
-# Reserve
-# EXPOSE 8000
-
-# startup command
-CMD ["python", "main.py"]
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=build /bot /app/bot
+CMD ["/app/bot"]
