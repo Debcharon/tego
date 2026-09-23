@@ -1,93 +1,35 @@
-# telegram-pm-chat-bot
+# tego
 
-English | [简体中文](/README_CN.md)
+English | [简体中文](README_CN.md)
 
-This is a chatbot that allows users to have private conversations with you on Telegram. It is easy to set up and can be
-customized to suit your needs.
+A single-admin private message relay bot written in Go. User messages are forwarded to the admin; the admin replies to a forwarded message to answer the user anonymously. It uses long polling and the Telegram Bot API directly, with a pure-Go SQLite driver for persistence.
 
-**Note**: This project is currently being updated in the developer's free time. If you do not mind using .NET, you may
-want to consider using [pmcenter](https://github.com/Elepover/pmcenter) instead.
+## Setup
 
-## Installation
-
-### Preparation
-
-* Create a Telegram bot and get its token
-* Install Python and pip
-* Use pip to install `python-telegram-bot==13.15.0`
-
-### Configuration
-
-Open `config.json` and configure
-
-- admin: admin ID (a numeric ID)
-- token: bot token
-- lang: language pack name (be careful, it should be 'en' or 'zh_cn' or 'zh_cn_moe')
-
-Initial value
+Install Go 1.25 or later and create a Telegram bot. Copy `data/config.example.json` to `data/config.json`, then set your admin ID:
 
 ```json
-{
-  "admin": 0,
-  "token": "",
-  "lang": "en"
-}
+{"admin": 123456789, "lang": "en"}
 ```
 
-Example
+Set the bot token through the `BOT_TOKEN` environment variable. The config file is local and ignored by Git. `lang` can be `en`, `zh_cn`, or `zh_cn_moe`. `admin` must be your numeric Telegram user ID; the bot will not start when it is unset.
 
-```json
-{
-  "admin": 5021485638,
-  "token": "5775925834:AAHDw2Pt-7TeLEY4c6PjtJnbHiR4N1q8Dmk",
-  "lang": "en"
-}
-```
+Run `go run .` from the project root. The language files are embedded in the binary; use `-data-dir /path/to/data` to run it from another working directory. To build a portable executable, use `go build -trimpath -ldflags="-s -w" -o bot .`; set `GOOS` and `GOARCH` for other platforms.
 
-If you didn't set admin's ID previously, the user who sends `/setadmin` to the bot first will become the admin. You can
-edit `config.json` to change admin later.
+Docker: after creating `data/config.json` and setting `BOT_TOKEN`, run `docker compose up -d --build`. The `data` directory is mounted for persistent settings and mappings.
 
-## Run The Bot
+## Commands
 
-Run the bot by executing the following command in the project directory
+| Command | Purpose |
+| --- | --- |
+| `/start` | Introduction |
+| `/help` | Project information |
+| `/ping` | Health response |
+| `/notification` | Toggle delivery confirmation for yourself |
+| `/info` | Admin: reply to a forwarded message to see sender |
+| `/ban` | Admin: reply to a forwarded message to ban sender |
+| `/unban` | Admin: reply to a forwarded message or provide user ID |
 
-`python main.py` or `python3 main.py`
+Messages, media, and captions supported by Telegram's `copyMessage` can be replied to. Admin replies do not expose the admin's account to the user. Preferences, message mappings, and polling offset are stored in `data/bot.db` (SQLite). The Go version starts with a new database and does not import Python JSON data. Run only one bot instance against a data directory and token.
 
-## Usage
-
-### Reply to bot a message
-
-Reply directly to the message forwarded by the robot to reply. You can reply text, sticker, photo, file, audio, voice
-and video.
-
-### Inquire sender identity
-
-You can reply `/info` to the message which you want to get its sender's info more clearly.
-
-### Message sending notification
-
-Send the command `/notification` to the bot to enable or disable the message sending notification
-
-Effect:
-
-* For admin: After replying to the user, if there is no error, it will not prompt "replied"
-* For users: After sending a message, the bot will not reply "received"
-
-### Ban and unban
-
-Reply `/ban` to a message to block the sender of the message from sending messages to you
-
-Reply `/unban` to a message or send `/unban <User ID>` to unban a user
-
-## Available commands
-
-| Command           | Usage                                      |
-|:------------------|:-------------------------------------------|
-| /start            | Start the bot                              |
-| /help             | Show help message                          |
-| /ping             | Check if the bot is running                |
-| /setadmin         | Set the current user as admin              |
-| /notification     | Toggle message sending notification status |
-| /info             | Inquire sender identity                    |
-| /ban              | Ban a user                                 |
-| /unban \<User ID> | Unban a user                               |
+SQLite records delivered update IDs to avoid repeating a successful relay or state change when an update is replayed. A network failure or process crash between Telegram accepting a message and SQLite recording it can still cause a duplicate on retry; Telegram does not provide an idempotency key for these sends. Optional confirmation messages are best effort and never trigger a second relay.
