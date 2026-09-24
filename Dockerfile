@@ -4,7 +4,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY *.go ./
-COPY lang/ ./lang/
+COPY internal/ ./internal/
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION=v1.20260924.0-dev

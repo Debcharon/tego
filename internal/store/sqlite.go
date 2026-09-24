@@ -1,20 +1,13 @@
-package main
+package store
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	_ "modernc.org/sqlite"
 )
-
-type Config struct {
-	Admin int64  `json:"admin"`
-	Lang  string `json:"lang"`
-}
 
 type Preference struct {
 	Notification bool   `json:"notification"`
@@ -25,24 +18,17 @@ type Preference struct {
 type Store struct {
 	dir         string
 	db          *sql.DB
-	Config      Config
-	Preferences map[string]Preference
+	preferences map[string]Preference
 	Offset      int64
 }
 
-func loadStore(dir string) (*Store, error) {
-	s := &Store{dir: dir, Preferences: make(map[string]Preference)}
-	data, err := os.ReadFile(filepath.Join(dir, "config.json"))
-	if err != nil {
+func Open(dir string) (*Store, error) {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(data, &s.Config); err != nil {
-		return nil, err
-	}
-	if s.Config.Admin <= 0 {
-		return nil, fmt.Errorf("admin must be a positive Telegram user ID in %s", filepath.Join(dir, "config.json"))
-	}
+	s := &Store{dir: dir, preferences: make(map[string]Preference)}
 	dbPath := filepath.Join(dir, "bot.db")
+	var err error
 	s.db, err = sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, err
@@ -83,7 +69,7 @@ func (s *Store) loadData() error {
 			rows.Close()
 			return err
 		}
-		s.Preferences[strconv.FormatInt(id, 10)] = p
+		s.preferences[strconv.FormatInt(id, 10)] = p
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
@@ -97,25 +83,24 @@ func (s *Store) loadData() error {
 	return nil
 }
 
-func (s *Store) initUser(u User) error {
-	key := strconv.FormatInt(u.ID, 10)
-	p, found := s.Preferences[key]
-	name := u.FullName()
+func (s *Store) InitUser(id int64, name string) error {
+	key := strconv.FormatInt(id, 10)
+	p, found := s.preferences[key]
 	if !found || p.Name != name {
 		p.Name = name
-		return s.setPreference(u.ID, p)
+		return s.SetPreference(id, p)
 	}
 	return nil
 }
-func (s *Store) preference(id int64) Preference { return s.Preferences[strconv.FormatInt(id, 10)] }
-func (s *Store) setPreference(id int64, p Preference) error {
+func (s *Store) Preference(id int64) Preference { return s.preferences[strconv.FormatInt(id, 10)] }
+func (s *Store) SetPreference(id int64, p Preference) error {
 	_, err := s.db.Exec(`INSERT INTO preferences (user_id,name,notification,blocked) VALUES (?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET name=excluded.name,notification=excluded.notification,blocked=excluded.blocked`, id, p.Name, p.Notification, p.Blocked)
 	if err == nil {
-		s.Preferences[strconv.FormatInt(id, 10)] = p
+		s.preferences[strconv.FormatInt(id, 10)] = p
 	}
 	return err
 }
-func (s *Store) delivered(updateID int64) (bool, error) {
+func (s *Store) Delivered(updateID int64) (bool, error) {
 	if updateID <= 0 {
 		return false, nil
 	}
@@ -127,7 +112,7 @@ func (s *Store) delivered(updateID int64) (bool, error) {
 	return err == nil, err
 }
 
-func (s *Store) markDelivered(updateID int64) error {
+func (s *Store) MarkDelivered(updateID int64) error {
 	if updateID <= 0 {
 		return nil
 	}
@@ -135,7 +120,7 @@ func (s *Store) markDelivered(updateID int64) error {
 	return err
 }
 
-func (s *Store) link(updateID, messageID, senderID int64) error {
+func (s *Store) Link(updateID, messageID, senderID int64) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -152,7 +137,7 @@ func (s *Store) link(updateID, messageID, senderID int64) error {
 	return tx.Commit()
 }
 
-func (s *Store) setPreferenceForUpdate(updateID, id int64, p Preference) error {
+func (s *Store) SetPreferenceForUpdate(updateID, id int64, p Preference) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -169,11 +154,11 @@ func (s *Store) setPreferenceForUpdate(updateID, id int64, p Preference) error {
 	if err = tx.Commit(); err != nil {
 		return err
 	}
-	s.Preferences[strconv.FormatInt(id, 10)] = p
+	s.preferences[strconv.FormatInt(id, 10)] = p
 	return nil
 }
 
-func (s *Store) sender(messageID int64) (int64, bool, error) {
+func (s *Store) Sender(messageID int64) (int64, bool, error) {
 	var senderID int64
 	err := s.db.QueryRow(`SELECT sender_id FROM messages WHERE admin_message_id=?`, messageID).Scan(&senderID)
 	if err == sql.ErrNoRows {
@@ -185,7 +170,7 @@ func (s *Store) sender(messageID int64) (int64, bool, error) {
 	return senderID, true, nil
 }
 
-func (s *Store) advanceOffset(next int64) error {
+func (s *Store) AdvanceOffset(next int64) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -202,4 +187,11 @@ func (s *Store) advanceOffset(next int64) error {
 	}
 	s.Offset = next
 	return nil
+}
+
+func (s *Store) Directory() string { return s.dir }
+
+func (s *Store) LookupPreference(id int64) (Preference, bool) {
+	p, ok := s.preferences[strconv.FormatInt(id, 10)]
+	return p, ok
 }

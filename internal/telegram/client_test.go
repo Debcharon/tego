@@ -1,4 +1,4 @@
-package main
+package telegram
 
 import (
 	"context"
@@ -28,13 +28,13 @@ func TestTelegramForwardAndCopy(t *testing.T) {
 		w.Write([]byte(`{"ok":true,"result":{"message_id":88}}`))
 	}))
 	defer server.Close()
-	api := newTelegram("test")
+	api := New("test")
 	api.baseURL = server.URL + "/"
-	message, err := api.forward(context.Background(), 1, 2, 3)
+	message, err := api.Forward(context.Background(), 1, 2, 3)
 	if err != nil || message.MessageID != 77 {
 		t.Fatalf("forward: %v, %v", message, err)
 	}
-	if err := api.copy(context.Background(), 1, 2, 3); err != nil {
+	if err := api.Copy(context.Background(), 1, 2, 3); err != nil {
 		t.Fatal(err)
 	}
 	if len(methods) != 2 || methods[0] != "/forwardMessage" || methods[1] != "/copyMessage" {

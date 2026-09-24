@@ -6,17 +6,40 @@
 
 ## 配置与运行
 
-安装 Go 1.25 或更新版本并创建 Telegram 机器人。将 `data/config.example.json` 复制为 `data/config.json`，再填写管理员 ID：
+安装 Go 1.25 或更新版本并创建 Telegram 机器人，通过环境变量配置：
 
-```json
-{"admin": 123456789, "lang": "zh_cn"}
+```dotenv
+BOT_TOKEN=your_bot_token
+ADMIN_ID=123456789
+BOT_LANG=en
 ```
 
-只能通过环境变量 `BOT_TOKEN` 设置 Token；本地配置文件已被 Git 忽略。语言可选 `en`、`zh_cn`、`zh_cn_moe`。必须将 `admin` 设为自己的 Telegram 数字用户 ID；未设置时机器人不会启动。
+`BOT_TOKEN` 和 `ADMIN_ID` 必填，管理员 ID 必须是自己的 Telegram 正整数用户 ID。`BOT_LANG` 默认 `en`，支持 `en`、`zh_cn` 和 `zh_cn_moe`。配置无效时，程序会在打开数据库前拒绝启动。配置仅从环境变量读取，不再加载 `data/config.json`。
 
-在项目根目录运行 `go run .`。语言包已嵌入程序；在其他目录运行时可通过 `-data-dir /path/to/data` 指定数据目录。编译可执行文件：`go build -trimpath -ldflags="-s -w" -o bot .`；跨平台编译时设置 `GOOS` 和 `GOARCH`。
+本地 PowerShell 运行示例：
 
-Docker：创建 `data/config.json` 并设置 `BOT_TOKEN` 后，执行 `docker compose up -d`。Compose 每次运行时都会从 Docker Hub 拉取 `microcharon/tego:latest`。`data` 目录会挂载保存设置和消息映射。
+```powershell
+$env:BOT_TOKEN = "your_bot_token"
+$env:ADMIN_ID = "123456789"
+$env:BOT_LANG = "en"
+go run .
+```
+
+Bash 可以先运行 `export BOT_TOKEN=... ADMIN_ID=123456789 BOT_LANG=en`，再执行 `go run .`。程序不会自动加载 `.env`。语言资源已嵌入程序；通过 `-data-dir /path/to/data` 指定 SQLite 目录，目录不存在时自动创建。编译命令：`go build -trimpath -ldflags="-s -w" -o bot .`；跨平台编译时设置 `GOOS` 和 `GOARCH`。
+
+Docker Compose：将 `.env.example` 复制为 `.env`，填写 `BOT_TOKEN` 和 `ADMIN_ID`，然后执行 `docker compose up -d`。Compose 会将变量传入容器，并挂载 `data/` 保存数据。`.env` 已被 Git 忽略，也不会进入 Docker 构建上下文。Compose 默认拉取 `microcharon/tego:latest`，因此需先发布包含本次修改的镜像。若要本地试用此分支，先执行 `docker build -t tego:local .`，再通过本地 Compose 覆盖文件将镜像设为 `tego:local`、`pull_policy` 设为 `never`。
+
+## 项目结构
+
+- `main.go`：程序启动与版本号注入。
+- `internal/config`：环境变量读取和校验。
+- `internal/bot`：命令、消息中转、长轮询和验证交互。
+- `internal/telegram`：Telegram API 客户端和消息类型。
+- `internal/store`：SQLite 持久化、投递记录和验证状态。
+- `internal/verification`：验证凭证签名与校验。
+- `internal/i18n`：嵌入式语言资源。
+
+测试随所属包放置。在项目根目录运行 `go test ./...` 和 `go vet ./...`。
 
 ## 指令
 

@@ -7,41 +7,52 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/Debcharon/tego/internal/bot"
+	"github.com/Debcharon/tego/internal/config"
+	"github.com/Debcharon/tego/internal/i18n"
+	"github.com/Debcharon/tego/internal/store"
+	"github.com/Debcharon/tego/internal/telegram"
 )
 
+var version = "v1.20260924.0-dev"
+
 func main() {
-	dataDir := flag.String("data-dir", "data", "directory containing config.json and bot.db")
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
+	dataDir := flag.String("data-dir", "data", "directory containing bot.db")
 	flag.Parse()
-	store, err := loadStore(*dataDir)
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	defer store.Close()
-	token := os.Getenv("BOT_TOKEN")
-	if token == "" {
-		log.Fatal("set BOT_TOKEN")
-	}
-	verify, err := newVerificationConfig(os.Getenv("VERIFY_URL"), os.Getenv("VERIFY_SIGNING_KEY"))
+	language, err := i18n.Load(cfg.Lang)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	lang, err := loadLanguage(store.Config.Lang)
+	db, err := store.Open(*dataDir)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	defer db.Close()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	telegram := newTelegram(token)
-	me, err := telegram.getMe(ctx)
+	client := telegram.New(cfg.Token)
+	me, err := client.GetMe(ctx)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	if err := telegram.setCommands(ctx); err != nil {
+	if err := client.SetCommands(ctx); err != nil {
 		log.Printf("set commands failed: %v", err)
 	}
-	bot := &Bot{store: store, api: telegram, lang: lang, username: me.Username, verify: verify}
+	relay := bot.New(db, client, language, me.Username, cfg.AdminID, cfg.Verification, version)
 	log.Printf("bot started: id=%d username=@%s", me.ID, me.Username)
-	if err := bot.run(ctx, telegram); err != nil {
-		log.Fatal(err)
+	if err := relay.Run(ctx, client); err != nil {
+		return err
 	}
+	return nil
 }

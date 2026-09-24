@@ -5,3 +5,6 @@ data
 *.db
 *.exe
 README*
+
+.env
+.env.*

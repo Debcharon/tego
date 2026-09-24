@@ -1,4 +1,4 @@
-package main
+package telegram
 
 import (
 	"bytes"
@@ -11,53 +11,12 @@ import (
 	"time"
 )
 
-type User struct {
-	ID        int64  `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Username  string `json:"username"`
-}
-
-func (u User) FullName() string { return strings.TrimSpace(u.FirstName + " " + u.LastName) }
-
-type Chat struct {
-	ID   int64  `json:"id"`
-	Type string `json:"type"`
-}
-type WebAppData struct {
-	Data string `json:"data"`
-}
-type Message struct {
-	MessageID      int64       `json:"message_id"`
-	From           *User       `json:"from"`
-	Chat           Chat        `json:"chat"`
-	Text           string      `json:"text"`
-	ReplyToMessage *Message    `json:"reply_to_message"`
-	WebAppData     *WebAppData `json:"web_app_data"`
-}
-type Update struct {
-	UpdateID int64    `json:"update_id"`
-	Message  *Message `json:"message"`
-}
-type apiEnvelope struct {
-	OK          bool            `json:"ok"`
-	Description string          `json:"description"`
-	ErrorCode   int             `json:"error_code"`
-	Result      json.RawMessage `json:"result"`
-}
-type APIError struct {
-	Code        int
-	Description string
-}
-
-func (e *APIError) Error() string { return fmt.Sprintf("Telegram API %d: %s", e.Code, e.Description) }
-
 type Telegram struct {
 	baseURL string
 	client  *http.Client
 }
 
-func newTelegram(token string) *Telegram {
+func New(token string) *Telegram {
 	return &Telegram{baseURL: "https://api.telegram.org/bot" + token + "/", client: &http.Client{Timeout: 75 * time.Second}}
 }
 func (t *Telegram) call(ctx context.Context, method string, params any, out any) error {
@@ -91,40 +50,40 @@ func (t *Telegram) call(ctx context.Context, method string, params any, out any)
 	}
 	return nil
 }
-func (t *Telegram) getUpdates(ctx context.Context, offset int64) ([]Update, error) {
+func (t *Telegram) GetUpdates(ctx context.Context, offset int64) ([]Update, error) {
 	var result []Update
 	err := t.call(ctx, "getUpdates", map[string]any{"offset": offset, "timeout": 60, "allowed_updates": []string{"message"}}, &result)
 	return result, err
 }
-func (t *Telegram) getMe(ctx context.Context) (User, error) {
+func (t *Telegram) GetMe(ctx context.Context) (User, error) {
 	var u User
 	err := t.call(ctx, "getMe", map[string]any{}, &u)
 	return u, err
 }
-func (t *Telegram) send(ctx context.Context, chatID int64, text string, replyID int64) error {
+func (t *Telegram) Send(ctx context.Context, chatID int64, text string, replyID int64) error {
 	p := map[string]any{"chat_id": chatID, "text": text}
 	if replyID != 0 {
 		p["reply_parameters"] = map[string]any{"message_id": replyID}
 	}
 	return t.call(ctx, "sendMessage", p, nil)
 }
-func (t *Telegram) sendVerification(ctx context.Context, chatID int64, text, button, webURL string) error {
+func (t *Telegram) SendVerification(ctx context.Context, chatID int64, text, button, webURL string) error {
 	return t.call(ctx, "sendMessage", map[string]any{"chat_id": chatID, "text": text,
 		"reply_markup": map[string]any{"keyboard": [][]any{{map[string]any{"text": button, "web_app": map[string]any{"url": webURL}}}}, "resize_keyboard": true, "one_time_keyboard": true}}, nil)
 }
-func (t *Telegram) clearVerification(ctx context.Context, chatID int64, text string) error {
+func (t *Telegram) ClearVerification(ctx context.Context, chatID int64, text string) error {
 	return t.call(ctx, "sendMessage", map[string]any{"chat_id": chatID, "text": text,
 		"reply_markup": map[string]any{"remove_keyboard": true}}, nil)
 }
-func (t *Telegram) forward(ctx context.Context, chatID, sourceID, messageID int64) (Message, error) {
+func (t *Telegram) Forward(ctx context.Context, chatID, sourceID, messageID int64) (Message, error) {
 	var result Message
 	err := t.call(ctx, "forwardMessage", map[string]any{"chat_id": chatID, "from_chat_id": sourceID, "message_id": messageID}, &result)
 	return result, err
 }
-func (t *Telegram) copy(ctx context.Context, chatID, sourceID, messageID int64) error {
+func (t *Telegram) Copy(ctx context.Context, chatID, sourceID, messageID int64) error {
 	return t.call(ctx, "copyMessage", map[string]any{"chat_id": chatID, "from_chat_id": sourceID, "message_id": messageID}, nil)
 }
-func (t *Telegram) setCommands(ctx context.Context) error {
+func (t *Telegram) SetCommands(ctx context.Context) error {
 	commands := []map[string]string{}
 	for _, entry := range [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"ping", "Check bot status"}, {"notification", "Toggle notifications"}, {"info", "Show sender"}, {"ban", "Ban sender"}, {"unban", "Unban sender"}} {
 		commands = append(commands, map[string]string{"command": entry[0], "description": entry[1]})
