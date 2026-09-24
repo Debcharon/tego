@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const version = "v3.0"
+var version = "v3.0"
 
 //go:embed lang/*.json
 var languages embed.FS

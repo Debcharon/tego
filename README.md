@@ -41,3 +41,9 @@ Verification is disabled unless both `VERIFY_URL` and `VERIFY_SIGNING_KEY` are s
 When enabled, non-admin users must open the verification button and pass Turnstile before messages or commands are relayed. The admin is exempt; bans still apply. Verified user IDs and outstanding challenges are stored in `data/bot.db`; the Vercel page does not access the bot's database. A successful check returns a one-time signed proof through Telegram. The bot then asks the user to resend the original message. If either required variable is missing or invalid, the bot refuses to start; an unavailable verification service does not bypass the gate.
 
 For Docker Compose, export the two variables or put them in a local `.env` file before `docker compose up -d`. Compose uses the published Hub image, so publish an image containing this change before enabling verification in that deployment.
+
+## Releases and containers
+
+A version tag in the form `vMAJOR.MINOR.PATCH` on `master` runs tests, publishes Linux (AMD64/ARM64), Windows (AMD64), and macOS (AMD64/ARM64) archives with `checksums.txt` in GitHub Releases, then publishes matching multi-platform container tags to Docker Hub and GitHub Container Registry. Release binaries include the example configuration file; they never include a bot token or database.
+
+The existing `microcharon/tego:latest` image continues to be published from `master`. For a pinned version, use `microcharon/tego:vX.Y.Z` or `ghcr.io/debcharon/tego:vX.Y.Z` in Compose. GitHub Container Registry packages are private on first publish by default; set the package visibility to public in GitHub if anonymous pulls are desired. Creating and pushing a release tag publishes the artifacts, so verify the intended commit and version before tagging.

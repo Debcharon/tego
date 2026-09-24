@@ -41,3 +41,9 @@ SQLite 会记录已投递的更新 ID，避免更新重放时再次执行已成�
 启用后，非管理员用户须点击验证按钮并通过验证，才能继续向管理员发送消息。管理员免验证，封禁规则仍然生效。已验证用户 ID 和待完成的挑战保存在本地 `data/bot.db`；Vercel 页面不访问机器人的数据库。验证成功后，页面通过 Telegram 发送一次性签名凭证，机器人会提示用户重新发送原消息。两个必填变量缺失或无效时程序拒绝启动，验证服务不可用时也不会放行。
 
 使用 Docker Compose 时，在运行 `docker compose up -d` 前导出这两个环境变量，或将其写入本地 `.env` 文件。Compose 使用已发布的 Docker Hub 镜像，因此启用前需先发布包含本次修改的镜像。
+
+## 版本发布与容器镜像
+
+在 `master` 上推送 `vMAJOR.MINOR.PATCH` 格式的版本标签后，Actions 会运行测试，将 Linux（AMD64/ARM64）、Windows（AMD64）和 macOS（AMD64/ARM64）的程序包及 `checksums.txt` 发布到 GitHub Releases，并将相同版本号的多架构镜像发布到 Docker Hub 和 GitHub Container Registry。程序包包含配置示例，不包含 Bot Token 或数据库。
+
+现有 `microcharon/tego:latest` 仍由 `master` 更新。需要固定版本时，可在 Compose 中使用 `microcharon/tego:vX.Y.Z` 或 `ghcr.io/debcharon/tego:vX.Y.Z`。GHCR 首次发布的 Package 默认是私有的；如需匿名拉取，请在 GitHub 将其可见性改为 Public。推送版本标签会触发正式发布，因此打标签前应确认提交和版本号。

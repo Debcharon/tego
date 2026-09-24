@@ -7,9 +7,11 @@ COPY *.go ./
 COPY lang/ ./lang/
 ARG TARGETOS
 ARG TARGETARCH
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /bot .
+ARG VERSION=v3.0
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o /bot .
 
 FROM scratch
+LABEL org.opencontainers.image.source="https://github.com/Debcharon/tego"
 WORKDIR /app
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /bot /app/bot
