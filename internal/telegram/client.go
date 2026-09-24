@@ -83,10 +83,22 @@ func (t *Telegram) Forward(ctx context.Context, chatID, sourceID, messageID int6
 func (t *Telegram) Copy(ctx context.Context, chatID, sourceID, messageID int64) error {
 	return t.call(ctx, "copyMessage", map[string]any{"chat_id": chatID, "from_chat_id": sourceID, "message_id": messageID}, nil)
 }
-func (t *Telegram) SetCommands(ctx context.Context) error {
-	commands := []map[string]string{}
-	for _, entry := range [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"ping", "Check bot status"}, {"notification", "Toggle notifications"}, {"info", "Show sender"}, {"ban", "Ban sender"}, {"unban", "Unban sender"}} {
-		commands = append(commands, map[string]string{"command": entry[0], "description": entry[1]})
+func (t *Telegram) SetCommands(ctx context.Context, adminID int64, language string) error {
+	user := [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"status", "Check bot status"}, {"notification", "Toggle confirmations"}}
+	admin := [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"status", "Show bot status"}, {"notification", "Toggle confirmations"}, {"info", "Show sender"}, {"ban", "Ban sender"}, {"unban", "Unban sender"}}
+	if language == "zh_cn" || language == "zh_cn_moe" {
+		user = [][2]string{{"start", "开始使用"}, {"help", "查看帮助"}, {"status", "查看运行状态"}, {"notification", "切换消息确认提示"}}
+		admin = [][2]string{{"start", "开始使用"}, {"help", "查看帮助"}, {"status", "查看运行状态"}, {"notification", "切换消息确认提示"}, {"info", "查看发送者"}, {"ban", "封禁发送者"}, {"unban", "解除封禁"}}
 	}
-	return t.call(ctx, "setMyCommands", map[string]any{"commands": commands}, nil)
+	encode := func(entries [][2]string) []map[string]string {
+		commands := make([]map[string]string, 0, len(entries))
+		for _, entry := range entries {
+			commands = append(commands, map[string]string{"command": entry[0], "description": entry[1]})
+		}
+		return commands
+	}
+	if err := t.call(ctx, "setMyCommands", map[string]any{"commands": encode(user), "scope": map[string]any{"type": "all_private_chats"}}, nil); err != nil {
+		return err
+	}
+	return t.call(ctx, "setMyCommands", map[string]any{"commands": encode(admin), "scope": map[string]any{"type": "chat", "chat_id": adminID}}, nil)
 }

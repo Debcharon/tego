@@ -16,11 +16,17 @@
     "unban_user": "User %s [Link](tg://user?id=%s)\nHas been unbanned.",
     "nonexistent_command": "Command not found.",
     "not_an_admin": "You have no permission.",
-    "reply_or_enter_id": "Please reply to a message or enter the ID of the user who has been banned.",
+    "reply_or_enter_id": "Reply to a relayed message or enter a user ID.",
     "user_not_found": "User not found.",
     "be_unbanned": "You have been unbanned.",
     "verification_required": "Please verify before sending messages. Tap the button below.",
     "verification_button": "Verify",
     "verification_success": "Verification complete. Please send your message again.",
-    "verification_failed": "Verification failed or expired. Send /start to try again."
+    "verification_failed": "Verification failed or expired. Send /start to try again.",
+    "help_user": "tego %s\nSend a message here to contact the admin anonymously. The admin's reply comes through this bot.\n/start - Start or request a fresh verification button\n/notification - Toggle delivery confirmations\n/status - Check whether the bot is running\n/help - Show this help\nIf verification is enabled, complete it first, then send your message again.\nhttps://github.com/Debcharon/tego",
+    "help_admin": "tego %s\nReply to a relayed message to answer anonymously.\n/info - Reply to view sender\n/ban - Reply or use /ban <user ID>\n/unban - Reply or use /unban <user ID>\n/notification - Toggle confirmations\n/status - Show version and verification mode\n/help - Show this help\nhttps://github.com/Debcharon/tego",
+    "status_user": "The bot is running.",
+    "status_admin": "tego %s is running. Verification: %s.",
+    "status_verification_on": "enabled",
+    "status_verification_off": "disabled"
 }

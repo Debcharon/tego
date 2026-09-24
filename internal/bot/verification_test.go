@@ -61,3 +61,16 @@ func TestVerificationGateAndProof(t *testing.T) {
 		t.Fatal("proof replay accepted", err)
 	}
 }
+
+func TestUnverifiedVisitorCanReadHelpAndStatus(t *testing.T) {
+	b, api := testBot(t)
+	config, err := verification.New("https://verify.example.com/", strings.Repeat("00", 32))
+	if err != nil { t.Fatal(err) }
+	b.verify = config
+	ctx := context.Background()
+	if err := b.handle(ctx, privateMessage(2, 1, "/help"), 0); err != nil { t.Fatal(err) }
+	if !strings.Contains(api.sent[len(api.sent)-1].text, "/start") { t.Fatal("help unavailable before verification") }
+	if err := b.handle(ctx, privateMessage(2, 2, "/status"), 0); err != nil { t.Fatal(err) }
+	if api.sent[len(api.sent)-1].text != b.text("status_user") { t.Fatal("status unavailable before verification") }
+	if api.forwarded != 0 { t.Fatal("unverified visitor was forwarded") }
+}

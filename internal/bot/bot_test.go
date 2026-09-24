@@ -226,3 +226,28 @@ func TestSQLiteErrorIsReturned(t *testing.T) {
 		t.Fatal("closed database write succeeded")
 	}
 }
+
+func TestBanByIDAndCommandHelp(t *testing.T) {
+	b, api := testBot(t)
+	ctx := context.Background()
+	if err := b.handle(ctx, privateMessage(2, 10, "hello"), 0); err != nil { t.Fatal(err) }
+	if err := b.handle(ctx, privateMessage(3, 11, "/ban 2"), 0); err != nil { t.Fatal(err) }
+	if b.store.Preference(2).Blocked { t.Fatal("visitor banned another user") }
+	if err := b.handle(ctx, privateMessage(1, 12, "/ban 2"), 0); err != nil { t.Fatal(err) }
+	if !b.store.Preference(2).Blocked { t.Fatal("admin ban by ID failed") }
+	if err := b.handle(ctx, privateMessage(1, 13, "/help"), 0); err != nil { t.Fatal(err) }
+	if !strings.Contains(api.sent[len(api.sent)-1].text, "/ban <user ID>") { t.Fatal("admin help missing ban usage") }
+	if err := b.handle(ctx, privateMessage(3, 14, "/help"), 0); err != nil { t.Fatal(err) }
+	if strings.Contains(api.sent[len(api.sent)-1].text, "/ban") { t.Fatal("visitor help exposes admin command") }
+}
+
+func TestStatusReplacesPing(t *testing.T) {
+	b, api := testBot(t)
+	ctx := context.Background()
+	if err := b.handle(ctx, privateMessage(1, 1, "/status"), 0); err != nil { t.Fatal(err) }
+	if !strings.Contains(api.sent[len(api.sent)-1].text, "Verification: disabled") { t.Fatal("admin status missing verification mode") }
+	if err := b.handle(ctx, privateMessage(2, 2, "/status"), 0); err != nil { t.Fatal(err) }
+	if api.sent[len(api.sent)-1].text != b.text("status_user") { t.Fatal("visitor status leaked admin details") }
+	if err := b.handle(ctx, privateMessage(2, 3, "/ping"), 0); err != nil { t.Fatal(err) }
+	if api.sent[len(api.sent)-1].text != b.text("nonexistent_command") { t.Fatal("ping still active") }
+}

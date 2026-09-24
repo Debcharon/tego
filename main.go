@@ -46,7 +46,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if err := client.SetCommands(ctx); err != nil {
+	if err := client.SetCommands(ctx, cfg.AdminID, cfg.Lang); err != nil {
 		log.Printf("set commands failed: %v", err)
 	}
 	relay := bot.New(db, client, language, me.Username, cfg.AdminID, cfg.Verification, version)

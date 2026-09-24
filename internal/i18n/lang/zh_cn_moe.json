@@ -16,11 +16,17 @@
     "unban_user": "用户 %s [链接](tg://user?id=%s)\n已被解禁",
     "nonexistent_command": "诶？这是什么意思？咱不懂诶(⊙o⊙)？",
     "not_an_admin": "不听不听，不是Master的话咱不听",
-    "reply_or_enter_id": "诶？Master要解禁谁的说？",
+    "reply_or_enter_id": "请回复转发消息，或输入用户 ID。",
     "user_not_found": "呐……咱没找到这个人的说::>_<::",
     "be_unbanned": "那个……之前抱歉了……不过Master说我现在又可以和你玩了O(∩_∩)O",
     "verification_required": "發送訊息前請先完成驗證，請點擊下方按鈕。",
     "verification_button": "開始驗證",
     "verification_success": "驗證成功，請重新發送訊息。",
-    "verification_failed": "驗證失敗或已過期，請發送 /start 重試。"
+    "verification_failed": "驗證失敗或已過期，請發送 /start 重試。",
+    "help_user": "tego %s\n发消息给咱，咱会转给 Master；Master 的回复也会通过咱送达。\n/start - 开始使用或获取新的验证按钮\n/notification - 切换消息送达提示\n/status - 查看运行状态\n/help - 查看帮助\n如需验证，完成后请重新发送原消息。\nhttps://github.com/Debcharon/tego",
+    "help_admin": "tego %s\n回复转发消息即可匿名答复。\n/info - 回复消息查看发送者\n/ban - 回复消息或使用 /ban <用户ID> 封禁\n/unban - 回复消息或使用 /unban <用户ID> 解封\n/notification - 切换消息确认提示\n/status - 查看版本和验证状态\n/help - 查看帮助\nhttps://github.com/Debcharon/tego",
+    "status_user": "咱正在运行的说。",
+    "status_admin": "tego %s 正在运行。访客验证：%s。",
+    "status_verification_on": "已启用",
+    "status_verification_off": "未启用"
 }

@@ -16,11 +16,17 @@
     "unban_user": "用户 %s [链接](tg://user?id=%s)\n已被解禁",
     "nonexistent_command": "此指令不存在",
     "not_an_admin": "您不是管理员",
-    "reply_or_enter_id": "请回复一条消息或输入被封禁者ID",
+    "reply_or_enter_id": "请回复一条转发消息，或输入用户 ID。",
     "user_not_found": "无此用户",
     "be_unbanned": "您已被解除封禁",
     "verification_required": "发送消息前请先完成验证，请点击下方按钮。",
     "verification_button": "开始验证",
     "verification_success": "验证成功，请重新发送消息。",
-    "verification_failed": "验证失败或已过期，请发送 /start 重试。"
+    "verification_failed": "验证失败或已过期，请发送 /start 重试。",
+    "help_user": "tego %s\n发送消息即可匿名联系管理员，管理员会通过机器人回复。\n/start - 开始使用或获取新的验证按钮\n/notification - 切换消息送达提示\n/status - 查看机器人是否运行\n/help - 查看本帮助\n如启用了验证，请先完成验证，再重新发送原消息。\nhttps://github.com/Debcharon/tego",
+    "help_admin": "tego %s\n回复转发消息即可匿名答复。\n/info - 回复消息查看发送者\n/ban - 回复消息或使用 /ban <用户ID> 封禁\n/unban - 回复消息或使用 /unban <用户ID> 解封\n/notification - 切换消息确认提示\n/status - 查看版本和验证状态\n/help - 查看本帮助\nhttps://github.com/Debcharon/tego",
+    "status_user": "机器人正在运行。",
+    "status_admin": "tego %s 正在运行。访客验证：%s。",
+    "status_verification_on": "已启用",
+    "status_verification_off": "未启用"
 }

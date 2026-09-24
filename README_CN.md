@@ -46,12 +46,14 @@ Docker Compose：将 `.env.example` 复制为 `.env`，填写 `BOT_TOKEN` 和 `A
 | 指令 | 用途 |
 | --- | --- |
 | `/start` | 开始使用 |
-| `/help` | 项目信息 |
-| `/ping` | 运行状态 |
+| `/help` | 查看访客或管理员的使用帮助 |
+| `/status` | 查看运行状态；管理员还能看到版本和验证开关 |
 | `/notification` | 切换自己的消息确认提示 |
 | `/info` | 管理员回复转发消息查询发送者 |
-| `/ban` | 管理员回复转发消息封禁发送者 |
+| `/ban` | 管理员回复转发消息或输入用户 ID 封禁 |
 | `/unban` | 管理员回复转发消息或输入用户 ID 解封 |
+
+机器人启动时会分别设置访客和管理员的 Telegram 命令菜单。
 
 管理员可回复 Telegram `copyMessage` 支持的消息、媒体和说明文字，答复不会暴露管理员账号。用户设置、消息映射和长轮询位置保存在 SQLite 数据库 `data/bot.db`。Go 版从空数据库开始，不导入旧版 Python 的 JSON 数据。同一 Token 和数据目录只应运行一个实例。
 
@@ -61,7 +63,7 @@ SQLite 会记录已投递的更新 ID，避免更新重放时再次执行已成�
 
 仅在同时设置 `VERIFY_URL` 和 `VERIFY_SIGNING_KEY` 后启用验证。独立的 [tego-verify](https://github.com/Debcharon/tego-verify) 项目在 Vercel 上提供 HTTPS Telegram Mini App，并根据 tego-verify 的环境变量选用 Cloudflare Turnstile 或 hCaptcha 验证。将 `VERIFY_URL` 设为页面的正式 HTTPS 地址，用 `openssl rand -hex 32` 生成共享签名密钥，并在 Vercel 项目设置同一密钥。不要将共享签名密钥或所选验证码服务的私钥提交到仓库。
 
-启用后，非管理员用户须点击验证按钮并通过验证，才能继续向管理员发送消息。管理员免验证，封禁规则仍然生效。已验证用户 ID 和待完成的挑战保存在本地 `data/bot.db`；Vercel 页面不访问机器人的数据库。验证成功后，页面通过 Telegram 发送一次性签名凭证，机器人会提示用户重新发送原消息。两个必填变量缺失或无效时程序拒绝启动，验证服务不可用时也不会放行。
+启用后，非管理员用户须点击验证按钮并通过验证，才能继续向管理员发送消息。未验证时仍可使用 /help、/status，发送 /start 可重新获取验证按钮。管理员免验证，封禁规则仍然生效。已验证用户 ID 和待完成的挑战保存在本地 `data/bot.db`；Vercel 页面不访问机器人的数据库。验证成功后，页面通过 Telegram 发送一次性签名凭证，机器人会提示用户重新发送原消息。两个必填变量缺失或无效时程序拒绝启动，验证服务不可用时也不会放行。
 
 使用 Docker Compose 时，在运行 `docker compose up -d` 前导出这两个环境变量，或将其写入本地 `.env` 文件。切换验证码服务时，在 tego-verify 配置 `CAPTCHA_PROVIDER` 和对应的站点密钥、服务端私钥；机器人侧无需配置验证码服务类型。Compose 使用已发布的 Docker Hub 镜像；仅切换验证码服务不需要重新发布机器人镜像。
 
