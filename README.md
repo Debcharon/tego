@@ -59,11 +59,11 @@ SQLite records delivered update IDs to avoid repeating a successful relay or sta
 
 ## Optional visitor verification
 
-Verification is disabled unless both `VERIFY_URL` and `VERIFY_SIGNING_KEY` are set. The separate [tego-verify](https://github.com/Debcharon/tego-verify) project hosts the HTTPS Telegram Mini App on Vercel and checks Cloudflare Turnstile. Set `VERIFY_URL` to its production HTTPS URL and generate a shared signing key with `openssl rand -hex 32`. Set the same key in the Vercel project. Never commit the key or the Turnstile secret.
+Verification is disabled unless both `VERIFY_URL` and `VERIFY_SIGNING_KEY` are set. The separate [tego-verify](https://github.com/Debcharon/tego-verify) project hosts the HTTPS Telegram Mini App on Vercel and verifies either Cloudflare Turnstile or hCaptcha, selected in the tego-verify environment. Set `VERIFY_URL` to its production HTTPS URL and generate a shared signing key with `openssl rand -hex 32`. Set the same key in the Vercel project. Never commit the signing key or the selected CAPTCHA provider secret.
 
-When enabled, non-admin users must open the verification button and pass Turnstile before messages or commands are relayed. The admin is exempt; bans still apply. Verified user IDs and outstanding challenges are stored in `data/bot.db`; the Vercel page does not access the bot's database. A successful check returns a one-time signed proof through Telegram. The bot then asks the user to resend the original message. If either required variable is missing or invalid, the bot refuses to start; an unavailable verification service does not bypass the gate.
+When enabled, non-admin users must open the verification button and pass the selected CAPTCHA before messages or commands are relayed. The admin is exempt; bans still apply. Verified user IDs and outstanding challenges are stored in `data/bot.db`; the Vercel page does not access the bot's database. A successful check returns a one-time signed proof through Telegram. The bot then asks the user to resend the original message. If either required variable is missing or invalid, the bot refuses to start; an unavailable verification service does not bypass the gate.
 
-For Docker Compose, export the two variables or put them in a local `.env` file before `docker compose up -d`. Compose uses the published Hub image, so publish an image containing this change before enabling verification in that deployment.
+For Docker Compose, export the two variables or put them in a local `.env` file before `docker compose up -d`. To switch providers, set `CAPTCHA_PROVIDER` and the matching site and secret keys in tego-verify; the bot needs no provider setting or new image. Compose uses the published Docker Hub image.
 
 ## Releases and containers
 
