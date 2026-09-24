@@ -54,8 +54,13 @@ func (b *Bot) handle(ctx context.Context, m *telegram.Message, updateID int64) e
 			return err
 		}
 		if !verified {
-			if command, _, ok := parseCommand(m.Text, b.username); ok && command == "start" {
-				return b.promptVerification(ctx, m, true)
+			if command, args, ok := parseCommand(m.Text, b.username); ok {
+				if command == "start" {
+					return b.promptVerification(ctx, m, true)
+				}
+				if command == "help" || command == "status" {
+					return b.command(ctx, m, command, args, updateID)
+				}
 			}
 			return b.promptVerification(ctx, m, false)
 		}

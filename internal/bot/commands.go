@@ -48,9 +48,20 @@ func (b *Bot) command(ctx context.Context, m *telegram.Message, command string, 
 	case "start":
 		return b.say(ctx, m.Chat.ID, "start")
 	case "help":
-		return b.api.Send(ctx, m.Chat.ID, "tego\n"+b.version+"\nhttps://github.com/Debcharon/tego", 0)
-	case "ping":
-		return b.api.Send(ctx, m.Chat.ID, "Pong!", 0)
+		key := "help_user"
+		if id == admin {
+			key = "help_admin"
+		}
+		return b.api.Send(ctx, m.Chat.ID, fmt.Sprintf(b.text(key), b.version), 0)
+	case "status":
+		if id == admin {
+			state := b.text("status_verification_off")
+			if b.verify != nil {
+				state = b.text("status_verification_on")
+			}
+			return b.api.Send(ctx, m.Chat.ID, fmt.Sprintf(b.text("status_admin"), b.version, state), 0)
+		}
+		return b.say(ctx, m.Chat.ID, "status_user")
 	case "notification":
 		p := b.store.Preference(id)
 		p.Notification = !p.Notification
@@ -78,13 +89,13 @@ func (b *Bot) command(ctx context.Context, m *telegram.Message, command string, 
 			if !ok {
 				return b.say(ctx, admin, "reply_to_message_no_data")
 			}
-		} else if command == "unban" && len(args) == 1 {
+		} else if len(args) == 1 && (command == "ban" || command == "unban") {
 			var err error
 			sender, err = strconv.ParseInt(args[0], 10, 64)
 			if err != nil || sender <= 0 {
 				return b.say(ctx, admin, "user_not_found")
 			}
-		} else if command == "unban" {
+		} else if command == "ban" || command == "unban" {
 			return b.say(ctx, admin, "reply_or_enter_id")
 		} else {
 			return b.say(ctx, admin, "reply_to_no_message")

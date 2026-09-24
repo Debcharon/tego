@@ -46,12 +46,14 @@ Tests live alongside their packages. Run `go test ./...` and `go vet ./...` from
 | Command | Purpose |
 | --- | --- |
 | `/start` | Introduction |
-| `/help` | Project information |
-| `/ping` | Health response |
+| `/help` | Usage help for visitors or admin |
+| `/status` | Running status; admin also sees version and verification mode |
 | `/notification` | Toggle delivery confirmation for yourself |
 | `/info` | Admin: reply to a forwarded message to see sender |
-| `/ban` | Admin: reply to a forwarded message to ban sender |
+| `/ban` | Admin: reply to a forwarded message or provide user ID |
 | `/unban` | Admin: reply to a forwarded message or provide user ID |
+
+The bot registers separate Telegram command menus for visitors and the admin at startup.
 
 Messages, media, and captions supported by Telegram's `copyMessage` can be replied to. Admin replies do not expose the admin's account to the user. Preferences, message mappings, and polling offset are stored in `data/bot.db` (SQLite). The Go version starts with a new database and does not import Python JSON data. Run only one bot instance against a data directory and token.
 
@@ -61,7 +63,7 @@ SQLite records delivered update IDs to avoid repeating a successful relay or sta
 
 Verification is disabled unless both `VERIFY_URL` and `VERIFY_SIGNING_KEY` are set. The separate [tego-verify](https://github.com/Debcharon/tego-verify) project hosts the HTTPS Telegram Mini App on Vercel and verifies either Cloudflare Turnstile or hCaptcha, selected in the tego-verify environment. Set `VERIFY_URL` to its production HTTPS URL and generate a shared signing key with `openssl rand -hex 32`. Set the same key in the Vercel project. Never commit the signing key or the selected CAPTCHA provider secret.
 
-When enabled, non-admin users must open the verification button and pass the selected CAPTCHA before messages or commands are relayed. The admin is exempt; bans still apply. Verified user IDs and outstanding challenges are stored in `data/bot.db`; the Vercel page does not access the bot's database. A successful check returns a one-time signed proof through Telegram. The bot then asks the user to resend the original message. If either required variable is missing or invalid, the bot refuses to start; an unavailable verification service does not bypass the gate.
+When enabled, non-admin users must open the verification button and pass the selected CAPTCHA before messages are relayed. They can still use /help and /status; /start requests a verification button. The admin is exempt; bans still apply. Verified user IDs and outstanding challenges are stored in `data/bot.db`; the Vercel page does not access the bot's database. A successful check returns a one-time signed proof through Telegram. The bot then asks the user to resend the original message. If either required variable is missing or invalid, the bot refuses to start; an unavailable verification service does not bypass the gate.
 
 For Docker Compose, export the two variables or put them in a local `.env` file before `docker compose up -d`. To switch providers, set `CAPTCHA_PROVIDER` and the matching site and secret keys in tego-verify; the bot needs no provider setting or new image. Compose uses the published Docker Hub image.
 
