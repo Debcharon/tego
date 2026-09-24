@@ -18,5 +18,9 @@
     "not_an_admin": "不听不听，不是Master的话咱不听",
     "reply_or_enter_id": "诶？Master要解禁谁的说？",
     "user_not_found": "呐……咱没找到这个人的说::>_<::",
-    "be_unbanned": "那个……之前抱歉了……不过Master说我现在又可以和你玩了O(∩_∩)O"
+    "be_unbanned": "那个……之前抱歉了……不过Master说我现在又可以和你玩了O(∩_∩)O",
+    "verification_required": "發送訊息前請先完成驗證，請點擊下方按鈕。",
+    "verification_button": "開始驗證",
+    "verification_success": "驗證成功，請重新發送訊息。",
+    "verification_failed": "驗證失敗或已過期，請發送 /start 重試。"
 }

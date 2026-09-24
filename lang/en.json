@@ -18,5 +18,9 @@
     "not_an_admin": "You have no permission.",
     "reply_or_enter_id": "Please reply to a message or enter the ID of the user who has been banned.",
     "user_not_found": "User not found.",
-    "be_unbanned": "You have been unbanned."
+    "be_unbanned": "You have been unbanned.",
+    "verification_required": "Please verify before sending messages. Tap the button below.",
+    "verification_button": "Verify",
+    "verification_success": "Verification complete. Please send your message again.",
+    "verification_failed": "Verification failed or expired. Send /start to try again."
 }

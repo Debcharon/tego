@@ -24,12 +24,16 @@ type Chat struct {
 	ID   int64  `json:"id"`
 	Type string `json:"type"`
 }
+type WebAppData struct {
+	Data string `json:"data"`
+}
 type Message struct {
-	MessageID      int64    `json:"message_id"`
-	From           *User    `json:"from"`
-	Chat           Chat     `json:"chat"`
-	Text           string   `json:"text"`
-	ReplyToMessage *Message `json:"reply_to_message"`
+	MessageID      int64       `json:"message_id"`
+	From           *User       `json:"from"`
+	Chat           Chat        `json:"chat"`
+	Text           string      `json:"text"`
+	ReplyToMessage *Message    `json:"reply_to_message"`
+	WebAppData     *WebAppData `json:"web_app_data"`
 }
 type Update struct {
 	UpdateID int64    `json:"update_id"`
@@ -103,6 +107,14 @@ func (t *Telegram) send(ctx context.Context, chatID int64, text string, replyID 
 		p["reply_parameters"] = map[string]any{"message_id": replyID}
 	}
 	return t.call(ctx, "sendMessage", p, nil)
+}
+func (t *Telegram) sendVerification(ctx context.Context, chatID int64, text, button, webURL string) error {
+	return t.call(ctx, "sendMessage", map[string]any{"chat_id": chatID, "text": text,
+		"reply_markup": map[string]any{"keyboard": [][]any{{map[string]any{"text": button, "web_app": map[string]any{"url": webURL}}}}, "resize_keyboard": true, "one_time_keyboard": true}}, nil)
+}
+func (t *Telegram) clearVerification(ctx context.Context, chatID int64, text string) error {
+	return t.call(ctx, "sendMessage", map[string]any{"chat_id": chatID, "text": text,
+		"reply_markup": map[string]any{"remove_keyboard": true}}, nil)
 }
 func (t *Telegram) forward(ctx context.Context, chatID, sourceID, messageID int64) (Message, error) {
 	var result Message

@@ -29,6 +29,12 @@ func (f *fakeAPI) send(_ context.Context, id int64, text string, reply int64) er
 	}
 	return nil
 }
+func (f *fakeAPI) sendVerification(ctx context.Context, id int64, text, button, url string) error {
+	return f.send(ctx, id, text, 0)
+}
+func (f *fakeAPI) clearVerification(ctx context.Context, id int64, text string) error {
+	return f.send(ctx, id, text, 0)
+}
 func (f *fakeAPI) forward(_ context.Context, _, _, _ int64) (Message, error) {
 	f.forwarded++
 	return Message{MessageID: 77}, nil

@@ -21,6 +21,10 @@ func main() {
 	if token == "" {
 		log.Fatal("set BOT_TOKEN")
 	}
+	verify, err := newVerificationConfig(os.Getenv("VERIFY_URL"), os.Getenv("VERIFY_SIGNING_KEY"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	lang, err := loadLanguage(store.Config.Lang)
 	if err != nil {
 		log.Fatal(err)
@@ -35,7 +39,7 @@ func main() {
 	if err := telegram.setCommands(ctx); err != nil {
 		log.Printf("set commands failed: %v", err)
 	}
-	bot := &Bot{store: store, api: telegram, lang: lang, username: me.Username}
+	bot := &Bot{store: store, api: telegram, lang: lang, username: me.Username, verify: verify}
 	log.Printf("bot started: id=%d username=@%s", me.ID, me.Username)
 	if err := bot.run(ctx, telegram); err != nil {
 		log.Fatal(err)

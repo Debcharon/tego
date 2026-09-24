@@ -21,12 +21,15 @@ type BotAPI interface {
 	send(context.Context, int64, string, int64) error
 	forward(context.Context, int64, int64, int64) (Message, error)
 	copy(context.Context, int64, int64, int64) error
+	sendVerification(context.Context, int64, string, string, string) error
+	clearVerification(context.Context, int64, string) error
 }
 type Bot struct {
 	store    *Store
 	api      BotAPI
 	lang     map[string]string
 	username string
+	verify   *VerificationConfig
 }
 
 func loadLanguage(name string) (map[string]string, error) {
@@ -41,7 +44,7 @@ func loadLanguage(name string) (map[string]string, error) {
 	if err := json.Unmarshal(data, &lang); err != nil {
 		return nil, err
 	}
-	for _, key := range []string{"start", "notification_on", "notification_off", "info_data", "message_received_notification", "reply_to_no_message", "reply_to_message_no_data", "reply_type_not_supported", "reply_message_sent", "please_setup_first", "blocked_alert", "reply_message_failed", "be_blocked_alert", "ban_user", "unban_user", "nonexistent_command", "not_an_admin", "reply_or_enter_id", "user_not_found", "be_unbanned"} {
+	for _, key := range []string{"start", "notification_on", "notification_off", "info_data", "message_received_notification", "reply_to_no_message", "reply_to_message_no_data", "reply_type_not_supported", "reply_message_sent", "please_setup_first", "blocked_alert", "reply_message_failed", "be_blocked_alert", "ban_user", "unban_user", "nonexistent_command", "not_an_admin", "reply_or_enter_id", "user_not_found", "be_unbanned", "verification_required", "verification_button", "verification_success", "verification_failed"} {
 		if lang[key] == "" {
 			return nil, fmt.Errorf("language %s missing %s", name, key)
 		}
@@ -64,6 +67,24 @@ func (b *Bot) handle(ctx context.Context, m *Message, updateID int64) error {
 	}
 	if err := b.store.initUser(*m.From); err != nil {
 		return err
+	}
+	if b.verify != nil && m.From.ID != b.store.Config.Admin {
+		if b.store.preference(m.From.ID).Blocked {
+			return b.say(ctx, m.Chat.ID, "be_blocked_alert")
+		}
+		if m.WebAppData != nil {
+			return b.acceptVerification(ctx, m, updateID)
+		}
+		verified, err := b.store.isVerified(m.From.ID)
+		if err != nil {
+			return err
+		}
+		if !verified {
+			if command, _, ok := parseCommand(m.Text, b.username); ok && command == "start" {
+				return b.promptVerification(ctx, m, true)
+			}
+			return b.promptVerification(ctx, m, false)
+		}
 	}
 	if command, args, ok := parseCommand(m.Text, b.username); ok {
 		return b.command(ctx, m, command, args, updateID)
