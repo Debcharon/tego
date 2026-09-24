@@ -6,17 +6,40 @@ A single-admin private message relay bot written in Go. User messages are forwar
 
 ## Setup
 
-Install Go 1.25 or later and create a Telegram bot. Copy `data/config.example.json` to `data/config.json`, then set your admin ID:
+Install Go 1.25 or later and create a Telegram bot. Configure the process environment:
 
-```json
-{"admin": 123456789, "lang": "en"}
+```dotenv
+BOT_TOKEN=your_bot_token
+ADMIN_ID=123456789
+BOT_LANG=en
 ```
 
-Set the bot token through the `BOT_TOKEN` environment variable. The config file is local and ignored by Git. `lang` can be `en`, `zh_cn`, or `zh_cn_moe`. `admin` must be your numeric Telegram user ID; the bot will not start when it is unset.
+`BOT_TOKEN` and `ADMIN_ID` are required. `ADMIN_ID` must be your positive numeric Telegram user ID. `BOT_LANG` defaults to `en` and supports `en`, `zh_cn`, and `zh_cn_moe`. Invalid configuration stops startup before opening the database. Configuration is read only from environment variables; `data/config.json` is no longer loaded.
 
-Run `go run .` from the project root. The language files are embedded in the binary; use `-data-dir /path/to/data` to run it from another working directory. To build a portable executable, use `go build -trimpath -ldflags="-s -w" -o bot .`; set `GOOS` and `GOARCH` for other platforms.
+For local PowerShell execution:
 
-Docker: after creating `data/config.json` and setting `BOT_TOKEN`, run `docker compose up -d`. Compose pulls `microcharon/tego:latest` from Docker Hub on each run. The `data` directory is mounted for persistent settings and mappings.
+```powershell
+$env:BOT_TOKEN = "your_bot_token"
+$env:ADMIN_ID = "123456789"
+$env:BOT_LANG = "en"
+go run .
+```
+
+For Bash, use `export BOT_TOKEN=... ADMIN_ID=123456789 BOT_LANG=en`, then `go run .`. The binary does not automatically load `.env` files. Language resources are embedded; use `-data-dir /path/to/data` to select the SQLite directory, which is created if missing. Build with `go build -trimpath -ldflags="-s -w" -o bot .`; set `GOOS` and `GOARCH` for cross-compilation.
+
+For Docker Compose, copy `.env.example` to `.env`, fill in `BOT_TOKEN` and `ADMIN_ID`, then run `docker compose up -d`. Compose passes these variables into the container and mounts `data/` for persistence. `.env` is ignored by Git and excluded from Docker build context. Compose pulls `microcharon/tego:latest`; these changes require a published image containing them. To try this branch locally, build with `docker build -t tego:local .` and use `tego:local` with `pull_policy: never` in a local Compose override.
+
+## Project structure
+
+- `main.go`: process startup and version injection.
+- `internal/config`: environment configuration and validation.
+- `internal/bot`: commands, relay, polling, and verification interaction.
+- `internal/telegram`: Telegram API client and message types.
+- `internal/store`: SQLite persistence, delivery records, and verification state.
+- `internal/verification`: signed verification tickets and proof validation.
+- `internal/i18n`: embedded language resources.
+
+Tests live alongside their packages. Run `go test ./...` and `go vet ./...` from the repository root.
 
 ## Commands
 
