@@ -54,6 +54,8 @@ func loadStore(dir string) (*Store, error) {
 		`CREATE TABLE IF NOT EXISTS messages (admin_message_id INTEGER PRIMARY KEY, sender_id INTEGER NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value INTEGER NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS deliveries (update_id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE IF NOT EXISTS verified_users (user_id INTEGER PRIMARY KEY, verified_at INTEGER NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS verification_challenges (user_id INTEGER PRIMARY KEY, nonce TEXT NOT NULL, expires_at INTEGER NOT NULL, prompted_at INTEGER NOT NULL)`,
 	} {
 		if _, err := s.db.Exec(statement); err != nil {
 			s.Close()

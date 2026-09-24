@@ -33,3 +33,11 @@ Docker: after creating `data/config.json` and setting `BOT_TOKEN`, run `docker c
 Messages, media, and captions supported by Telegram's `copyMessage` can be replied to. Admin replies do not expose the admin's account to the user. Preferences, message mappings, and polling offset are stored in `data/bot.db` (SQLite). The Go version starts with a new database and does not import Python JSON data. Run only one bot instance against a data directory and token.
 
 SQLite records delivered update IDs to avoid repeating a successful relay or state change when an update is replayed. A network failure or process crash between Telegram accepting a message and SQLite recording it can still cause a duplicate on retry; Telegram does not provide an idempotency key for these sends. Optional confirmation messages are best effort and never trigger a second relay.
+
+## Optional visitor verification
+
+Verification is disabled unless both `VERIFY_URL` and `VERIFY_SIGNING_KEY` are set. The separate [tego-verify](https://github.com/Debcharon/tego-verify) project hosts the HTTPS Telegram Mini App on Vercel and checks Cloudflare Turnstile. Set `VERIFY_URL` to its production HTTPS URL and generate a shared signing key with `openssl rand -hex 32`. Set the same key in the Vercel project. Never commit the key or the Turnstile secret.
+
+When enabled, non-admin users must open the verification button and pass Turnstile before messages or commands are relayed. The admin is exempt; bans still apply. Verified user IDs and outstanding challenges are stored in `data/bot.db`; the Vercel page does not access the bot's database. A successful check returns a one-time signed proof through Telegram. The bot then asks the user to resend the original message. If either required variable is missing or invalid, the bot refuses to start; an unavailable verification service does not bypass the gate.
+
+For Docker Compose, export the two variables or put them in a local `.env` file before `docker compose up -d`. Compose uses the published Hub image, so publish an image containing this change before enabling verification in that deployment.

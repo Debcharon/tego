@@ -4,6 +4,8 @@ services:
     pull_policy: always
     environment:
       BOT_TOKEN: ${BOT_TOKEN:-}
+      VERIFY_URL: ${VERIFY_URL:-}
+      VERIFY_SIGNING_KEY: ${VERIFY_SIGNING_KEY:-}
     volumes:
       - ./data:/app/data  # Modify the path to the local data directory
     restart: unless-stopped

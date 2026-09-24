@@ -18,5 +18,9 @@
     "not_an_admin": "您不是管理员",
     "reply_or_enter_id": "请回复一条消息或输入被封禁者ID",
     "user_not_found": "无此用户",
-    "be_unbanned": "您已被解除封禁"
+    "be_unbanned": "您已被解除封禁",
+    "verification_required": "发送消息前请先完成验证，请点击下方按钮。",
+    "verification_button": "开始验证",
+    "verification_success": "验证成功，请重新发送消息。",
+    "verification_failed": "验证失败或已过期，请发送 /start 重试。"
 }
