@@ -16,7 +16,7 @@
 
 在项目根目录运行 `go run .`。语言包已嵌入程序；在其他目录运行时可通过 `-data-dir /path/to/data` 指定数据目录。编译可执行文件：`go build -trimpath -ldflags="-s -w" -o bot .`；跨平台编译时设置 `GOOS` 和 `GOARCH`。
 
-Docker：创建 `data/config.json` 并设置 `BOT_TOKEN` 后，执行 `docker compose up -d --build`。`data` 目录会挂载保存设置和消息映射。
+Docker：创建 `data/config.json` 并设置 `BOT_TOKEN` 后，执行 `docker compose up -d`。Compose 每次运行时都会从 Docker Hub 拉取 `microcharon/tego:latest`。`data` 目录会挂载保存设置和消息映射。
 
 ## 指令
 

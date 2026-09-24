@@ -16,7 +16,7 @@ Set the bot token through the `BOT_TOKEN` environment variable. The config file 
 
 Run `go run .` from the project root. The language files are embedded in the binary; use `-data-dir /path/to/data` to run it from another working directory. To build a portable executable, use `go build -trimpath -ldflags="-s -w" -o bot .`; set `GOOS` and `GOARCH` for other platforms.
 
-Docker: after creating `data/config.json` and setting `BOT_TOKEN`, run `docker compose up -d --build`. The `data` directory is mounted for persistent settings and mappings.
+Docker: after creating `data/config.json` and setting `BOT_TOKEN`, run `docker compose up -d`. Compose pulls `microcharon/tego:latest` from Docker Hub on each run. The `data` directory is mounted for persistent settings and mappings.
 
 ## Commands
 
