@@ -1,7 +1,7 @@
 services:
   app:
-    build: .
-    image: tego:local
+    image: microcharon/tego:latest
+    pull_policy: always
     environment:
       BOT_TOKEN: ${BOT_TOKEN:-}
     volumes:
