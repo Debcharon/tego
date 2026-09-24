@@ -59,11 +59,11 @@ SQLite 会记录已投递的更新 ID，避免更新重放时再次执行已成�
 
 ## 可选访客验证
 
-仅在同时设置 `VERIFY_URL` 和 `VERIFY_SIGNING_KEY` 后启用验证。独立的 [tego-verify](https://github.com/Debcharon/tego-verify) 项目在 Vercel 上提供 HTTPS Telegram Mini App，并通过 Cloudflare Turnstile 验证。将 `VERIFY_URL` 设为页面的正式 HTTPS 地址，用 `openssl rand -hex 32` 生成共享签名密钥，并在 Vercel 项目设置同一密钥。不要将密钥或 Turnstile 私钥提交到仓库。
+仅在同时设置 `VERIFY_URL` 和 `VERIFY_SIGNING_KEY` 后启用验证。独立的 [tego-verify](https://github.com/Debcharon/tego-verify) 项目在 Vercel 上提供 HTTPS Telegram Mini App，并根据 tego-verify 的环境变量选用 Cloudflare Turnstile 或 hCaptcha 验证。将 `VERIFY_URL` 设为页面的正式 HTTPS 地址，用 `openssl rand -hex 32` 生成共享签名密钥，并在 Vercel 项目设置同一密钥。不要将共享签名密钥或所选验证码服务的私钥提交到仓库。
 
 启用后，非管理员用户须点击验证按钮并通过验证，才能继续向管理员发送消息。管理员免验证，封禁规则仍然生效。已验证用户 ID 和待完成的挑战保存在本地 `data/bot.db`；Vercel 页面不访问机器人的数据库。验证成功后，页面通过 Telegram 发送一次性签名凭证，机器人会提示用户重新发送原消息。两个必填变量缺失或无效时程序拒绝启动，验证服务不可用时也不会放行。
 
-使用 Docker Compose 时，在运行 `docker compose up -d` 前导出这两个环境变量，或将其写入本地 `.env` 文件。Compose 使用已发布的 Docker Hub 镜像，因此启用前需先发布包含本次修改的镜像。
+使用 Docker Compose 时，在运行 `docker compose up -d` 前导出这两个环境变量，或将其写入本地 `.env` 文件。切换验证码服务时，在 tego-verify 配置 `CAPTCHA_PROVIDER` 和对应的站点密钥、服务端私钥；机器人侧无需配置验证码服务类型。Compose 使用已发布的 Docker Hub 镜像；仅切换验证码服务不需要重新发布机器人镜像。
 
 ## 版本发布与容器镜像
 
