@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var version = "v2026.09.24-dev"
+var version = "v1.20260924.0-dev"
 
 //go:embed lang/*.json
 var languages embed.FS

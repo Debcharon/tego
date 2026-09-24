@@ -7,7 +7,7 @@ COPY *.go ./
 COPY lang/ ./lang/
 ARG TARGETOS
 ARG TARGETARCH
-ARG VERSION=v2026.09.24-dev
+ARG VERSION=v1.20260924.0-dev
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o /bot .
 
 FROM scratch

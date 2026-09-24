@@ -17,7 +17,7 @@ jobs:
       - name: Validate release tag
         shell: bash
         run: |
-          [[ "$GITHUB_REF_NAME" =~ ^v(20[0-9]{2})\.(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01])(\.[1-9][0-9]*)?$ ]] || { echo "Expected vYYYY.MM.DD or vYYYY.MM.DD.N" >&2; exit 1; }
+          [[ "$GITHUB_REF_NAME" =~ ^v1\.(20[0-9]{2})(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])\.([0-9]|[1-9][0-9]+)$ ]] || { echo "Expected v1.YYYYMMDD.N, such as v1.20260924.0" >&2; exit 1; }
           release_date="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]}"
           [[ "$(date -u -d "$release_date" +%Y-%m-%d 2>/dev/null)" == "$release_date" ]] || { echo "Invalid release date" >&2; exit 1; }
           git merge-base --is-ancestor "$GITHUB_SHA" origin/master
