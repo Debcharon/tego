@@ -3,7 +3,9 @@ services:
     image: microcharon/tego:latest
     pull_policy: always
     environment:
-      BOT_TOKEN: ${BOT_TOKEN:-}
+      BOT_TOKEN: ${BOT_TOKEN:?Set BOT_TOKEN}
+      ADMIN_ID: ${ADMIN_ID:?Set ADMIN_ID to your Telegram user ID}
+      BOT_LANG: ${BOT_LANG:-en}
       VERIFY_URL: ${VERIFY_URL:-}
       VERIFY_SIGNING_KEY: ${VERIFY_SIGNING_KEY:-}
     volumes:

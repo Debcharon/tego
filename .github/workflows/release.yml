@@ -87,7 +87,7 @@ jobs:
             CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
               -ldflags="-s -w -X main.version=$version" -o "$work/$binary" .
             cp README.md README_CN.md LICENSE "$work/"
-            cp data/config.example.json "$work/data/"
+            cp .env.example "$work/"
             if [[ "$os" == windows ]]; then
               (cd "$work" && zip -qr "$GITHUB_WORKSPACE/dist/$name.zip" .)
             else
