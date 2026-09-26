@@ -43,7 +43,7 @@ func (t *Telegram) call(ctx context.Context, method string, params any, out any)
 		return fmt.Errorf("decode %s: %w", method, err)
 	}
 	if !envelope.OK {
-		return &APIError{Code: envelope.ErrorCode, Description: envelope.Description}
+		return &APIError{Code: envelope.ErrorCode, Description: envelope.Description, RetryAfter: envelope.Parameters.RetryAfter}
 	}
 	if out != nil {
 		return json.Unmarshal(envelope.Result, out)
@@ -52,7 +52,7 @@ func (t *Telegram) call(ctx context.Context, method string, params any, out any)
 }
 func (t *Telegram) GetUpdates(ctx context.Context, offset int64) ([]Update, error) {
 	var result []Update
-	err := t.call(ctx, "getUpdates", map[string]any{"offset": offset, "timeout": 60, "allowed_updates": []string{"message"}}, &result)
+	err := t.call(ctx, "getUpdates", map[string]any{"offset": offset, "timeout": 60, "allowed_updates": []string{"message", "callback_query"}}, &result)
 	return result, err
 }
 func (t *Telegram) GetMe(ctx context.Context) (User, error) {
@@ -66,6 +66,23 @@ func (t *Telegram) Send(ctx context.Context, chatID int64, text string, replyID 
 		p["reply_parameters"] = map[string]any{"message_id": replyID}
 	}
 	return t.call(ctx, "sendMessage", p, nil)
+}
+
+type Button struct {
+	Text string `json:"text"`
+	Data string `json:"callback_data"`
+}
+
+func (t *Telegram) SendPanel(ctx context.Context, chatID int64, text string, buttons [][]Button) error {
+	return t.call(ctx, "sendMessage", map[string]any{"chat_id": chatID, "text": text,
+		"reply_markup": map[string]any{"inline_keyboard": buttons}}, nil)
+}
+func (t *Telegram) EditPanel(ctx context.Context, chatID, messageID int64, text string, buttons [][]Button) error {
+	return t.call(ctx, "editMessageText", map[string]any{"chat_id": chatID, "message_id": messageID, "text": text,
+		"reply_markup": map[string]any{"inline_keyboard": buttons}}, nil)
+}
+func (t *Telegram) AnswerCallback(ctx context.Context, id, text string, alert bool) error {
+	return t.call(ctx, "answerCallbackQuery", map[string]any{"callback_query_id": id, "text": text, "show_alert": alert}, nil)
 }
 func (t *Telegram) SendVerification(ctx context.Context, chatID int64, text, button, webURL string) error {
 	return t.call(ctx, "sendMessage", map[string]any{"chat_id": chatID, "text": text,
@@ -85,10 +102,10 @@ func (t *Telegram) Copy(ctx context.Context, chatID, sourceID, messageID int64) 
 }
 func (t *Telegram) SetCommands(ctx context.Context, adminID int64, language string) error {
 	user := [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"status", "Check bot status"}, {"notification", "Toggle confirmations"}}
-	admin := [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"status", "Show bot status"}, {"notification", "Toggle confirmations"}, {"info", "Show sender"}, {"ban", "Ban sender"}, {"unban", "Unban sender"}}
+	admin := [][2]string{{"start", "Open admin panel"}, {"help", "Show help"}, {"status", "Show bot status"}, {"notification", "Toggle confirmations"}, {"info", "Show sender"}, {"ban", "Ban sender"}, {"unban", "Unban sender"}, {"banlist", "List banned users"}, {"unverify", "Revoke verification"}}
 	if language == "zh_cn" || language == "zh_cn_moe" {
 		user = [][2]string{{"start", "开始使用"}, {"help", "查看帮助"}, {"status", "查看运行状态"}, {"notification", "切换消息确认提示"}}
-		admin = [][2]string{{"start", "开始使用"}, {"help", "查看帮助"}, {"status", "查看运行状态"}, {"notification", "切换消息确认提示"}, {"info", "查看发送者"}, {"ban", "封禁发送者"}, {"unban", "解除封禁"}}
+		admin = [][2]string{{"start", "打开管理面板"}, {"help", "查看帮助"}, {"status", "查看运行状态"}, {"notification", "切换消息确认提示"}, {"info", "查看发送者"}, {"ban", "封禁发送者"}, {"unban", "解除封禁"}, {"banlist", "查看封禁名单"}, {"unverify", "撤销验证"}}
 	}
 	encode := func(entries [][2]string) []map[string]string {
 		commands := make([]map[string]string, 0, len(entries))

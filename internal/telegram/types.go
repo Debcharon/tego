@@ -31,18 +31,30 @@ type Message struct {
 	WebAppData     *WebAppData `json:"web_app_data"`
 }
 type Update struct {
-	UpdateID int64    `json:"update_id"`
-	Message  *Message `json:"message"`
+	UpdateID      int64          `json:"update_id"`
+	Message       *Message       `json:"message"`
+	CallbackQuery *CallbackQuery `json:"callback_query"`
+}
+type CallbackQuery struct {
+	ID      string   `json:"id"`
+	From    User     `json:"from"`
+	Message *Message `json:"message"`
+	Data    string   `json:"data"`
+}
+type ResponseParameters struct {
+	RetryAfter int `json:"retry_after"`
 }
 type apiEnvelope struct {
-	OK          bool            `json:"ok"`
-	Description string          `json:"description"`
-	ErrorCode   int             `json:"error_code"`
-	Result      json.RawMessage `json:"result"`
+	OK          bool               `json:"ok"`
+	Description string             `json:"description"`
+	ErrorCode   int                `json:"error_code"`
+	Parameters  ResponseParameters `json:"parameters"`
+	Result      json.RawMessage    `json:"result"`
 }
 type APIError struct {
 	Code        int
 	Description string
+	RetryAfter  int
 }
 
 func (e *APIError) Error() string { return fmt.Sprintf("Telegram API %d: %s", e.Code, e.Description) }

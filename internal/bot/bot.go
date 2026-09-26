@@ -14,6 +14,9 @@ type BotAPI interface {
 	Copy(context.Context, int64, int64, int64) error
 	SendVerification(context.Context, int64, string, string, string) error
 	ClearVerification(context.Context, int64, string) error
+	SendPanel(context.Context, int64, string, [][]telegram.Button) error
+	EditPanel(context.Context, int64, int64, string, [][]telegram.Button) error
+	AnswerCallback(context.Context, string, string, bool) error
 }
 type Bot struct {
 	adminID  int64
@@ -69,6 +72,18 @@ func (b *Bot) handle(ctx context.Context, m *telegram.Message, updateID int64) e
 		return b.command(ctx, m, command, args, updateID)
 	}
 	return b.message(ctx, m, updateID)
+}
+
+func (b *Bot) handleUpdate(ctx context.Context, update telegram.Update) error {
+	if update.CallbackQuery != nil {
+		if done, err := b.store.Delivered(update.UpdateID); err != nil {
+			return err
+		} else if done {
+			return nil
+		}
+		return b.callback(ctx, update.CallbackQuery, update.UpdateID)
+	}
+	return b.handle(ctx, update.Message, update.UpdateID)
 }
 
 func New(s *store.Store, api BotAPI, language map[string]string, username string, adminID int64, verify *verification.Config, version string) *Bot {
