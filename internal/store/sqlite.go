@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -36,8 +37,8 @@ func Open(dir string) (*Store, error) {
 	s.db.SetMaxOpenConns(1)
 	for _, statement := range []string{
 		`PRAGMA busy_timeout=5000`,
-		`CREATE TABLE IF NOT EXISTS preferences (user_id INTEGER PRIMARY KEY, name TEXT NOT NULL, notification INTEGER NOT NULL, blocked INTEGER NOT NULL)`,
-		`CREATE TABLE IF NOT EXISTS messages (admin_message_id INTEGER PRIMARY KEY, sender_id INTEGER NOT NULL)`,
+		`CREATE TABLE IF NOT EXISTS preferences (user_id INTEGER PRIMARY KEY, name TEXT NOT NULL, notification INTEGER NOT NULL, blocked INTEGER NOT NULL, last_seen INTEGER NOT NULL DEFAULT 0)`,
+		`CREATE TABLE IF NOT EXISTS messages (admin_message_id INTEGER PRIMARY KEY, sender_id INTEGER NOT NULL, created_at INTEGER NOT NULL DEFAULT 0)`,
 		`CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value INTEGER NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS deliveries (update_id INTEGER PRIMARY KEY)`,
 		`CREATE TABLE IF NOT EXISTS verified_users (user_id INTEGER PRIMARY KEY, verified_at INTEGER NOT NULL)`,
@@ -48,6 +49,14 @@ func Open(dir string) (*Store, error) {
 			return nil, err
 		}
 	}
+	if err := s.addColumnIfMissing("preferences", "last_seen", "INTEGER NOT NULL DEFAULT 0"); err != nil {
+		s.Close()
+		return nil, err
+	}
+	if err := s.addColumnIfMissing("messages", "created_at", "INTEGER NOT NULL DEFAULT 0"); err != nil {
+		s.Close()
+		return nil, err
+	}
 	if err := s.loadData(); err != nil {
 		s.Close()
 		return nil, err
@@ -56,6 +65,31 @@ func Open(dir string) (*Store, error) {
 }
 
 func (s *Store) Close() error { return s.db.Close() }
+
+func (s *Store) addColumnIfMissing(table, column, definition string) error {
+	rows, err := s.db.Query("PRAGMA table_info(" + table + ")")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid, notNull, primary int
+		var name, dataType string
+		var defaultValue sql.NullString
+		if err := rows.Scan(&cid, &name, &dataType, &notNull, &defaultValue, &primary); err != nil {
+			return err
+		}
+		if name == column {
+			return nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	rows.Close()
+	_, err = s.db.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition)
+	return err
+}
 
 func (s *Store) loadData() error {
 	rows, err := s.db.Query(`SELECT user_id,name,notification,blocked FROM preferences`)
@@ -88,9 +122,12 @@ func (s *Store) InitUser(id int64, name string) error {
 	p, found := s.preferences[key]
 	if !found || p.Name != name {
 		p.Name = name
-		return s.SetPreference(id, p)
+		if err := s.SetPreference(id, p); err != nil {
+			return err
+		}
 	}
-	return nil
+	_, err := s.db.Exec(`UPDATE preferences SET last_seen=? WHERE user_id=?`, time.Now().Unix(), id)
+	return err
 }
 func (s *Store) Preference(id int64) Preference { return s.preferences[strconv.FormatInt(id, 10)] }
 func (s *Store) SetPreference(id int64, p Preference) error {
@@ -126,7 +163,7 @@ func (s *Store) Link(updateID, messageID, senderID int64) error {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = tx.Exec(`INSERT INTO messages (admin_message_id,sender_id) VALUES (?,?) ON CONFLICT(admin_message_id) DO UPDATE SET sender_id=excluded.sender_id`, messageID, senderID); err != nil {
+	if _, err = tx.Exec(`INSERT INTO messages (admin_message_id,sender_id,created_at) VALUES (?,?,?) ON CONFLICT(admin_message_id) DO UPDATE SET sender_id=excluded.sender_id,created_at=excluded.created_at`, messageID, senderID, time.Now().Unix()); err != nil {
 		return err
 	}
 	if updateID > 0 {

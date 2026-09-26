@@ -8,6 +8,43 @@ import (
 	"testing"
 )
 
+func TestRetryAfterIsParsed(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Write([]byte(`{"ok":false,"error_code":429,"description":"Too Many Requests","parameters":{"retry_after":17}}`))
+	}))
+	defer server.Close()
+	api := New("test")
+	api.baseURL = server.URL + "/"
+	err := api.Send(context.Background(), 1, "hello", 0)
+	apiErr, ok := err.(*APIError)
+	if !ok || apiErr.Code != 429 || apiErr.RetryAfter != 17 {
+		t.Fatalf("retry_after: %v", err)
+	}
+}
+
+func TestGetUpdatesIncludesCallbacks(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Allowed []string `json:"allowed_updates"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		if len(body.Allowed) != 2 || body.Allowed[0] != "message" || body.Allowed[1] != "callback_query" {
+			t.Errorf("allowed updates: %v", body.Allowed)
+		}
+		w.Write([]byte(`{"ok":true,"result":[{"update_id":10,"callback_query":{"id":"a","from":{"id":1},"message":{"message_id":5,"chat":{"id":1,"type":"private"}},"data":"home"}}]}`))
+	}))
+	defer server.Close()
+	api := New("test")
+	api.baseURL = server.URL + "/"
+	updates, err := api.GetUpdates(context.Background(), 10)
+	if err != nil || len(updates) != 1 || updates[0].CallbackQuery == nil || updates[0].CallbackQuery.Data != "home" {
+		t.Fatalf("callbacks: %+v %v", updates, err)
+	}
+}
+
 func TestTelegramForwardAndCopy(t *testing.T) {
 	methods := make([]string, 0, 2)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,20 +82,40 @@ func TestTelegramForwardAndCopy(t *testing.T) {
 func TestSetCommandsScopes(t *testing.T) {
 	var calls []map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/setMyCommands" { t.Errorf("unexpected path %s", r.URL.Path) }
+		if r.URL.Path != "/setMyCommands" {
+			t.Errorf("unexpected path %s", r.URL.Path)
+		}
 		var body map[string]any
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil { t.Error(err) }
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
 		calls = append(calls, body)
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("{\"ok\":true,\"result\":true}"))
 	}))
 	defer server.Close()
-	api := New("test"); api.baseURL = server.URL + "/"
-	if err := api.SetCommands(context.Background(), 42, "en"); err != nil { t.Fatal(err) }
-	if len(calls) != 2 { t.Fatalf("got %d calls", len(calls)) }
+	api := New("test")
+	api.baseURL = server.URL + "/"
+	if err := api.SetCommands(context.Background(), 42, "en"); err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 2 {
+		t.Fatalf("got %d calls", len(calls))
+	}
 	visitorScope := calls[0]["scope"].(map[string]any)
 	adminScope := calls[1]["scope"].(map[string]any)
-	if visitorScope["type"] != "all_private_chats" || adminScope["type"] != "chat" || adminScope["chat_id"] != float64(42) { t.Fatalf("bad scopes: %+v", calls) }
-	has := func(index int, command string) bool { for _, raw := range calls[index]["commands"].([]any) { if raw.(map[string]any)["command"] == command { return true } }; return false }
-	if has(0, "ban") || has(0, "ping") || !has(0, "status") || !has(1, "ban") || has(1, "ping") { t.Fatalf("bad commands: %+v", calls) }
+	if visitorScope["type"] != "all_private_chats" || adminScope["type"] != "chat" || adminScope["chat_id"] != float64(42) {
+		t.Fatalf("bad scopes: %+v", calls)
+	}
+	has := func(index int, command string) bool {
+		for _, raw := range calls[index]["commands"].([]any) {
+			if raw.(map[string]any)["command"] == command {
+				return true
+			}
+		}
+		return false
+	}
+	if has(0, "ban") || has(0, "banlist") || has(0, "unverify") || has(0, "ping") || !has(0, "status") || !has(1, "ban") || !has(1, "banlist") || !has(1, "unverify") || has(1, "ping") {
+		t.Fatalf("bad commands: %+v", calls)
+	}
 }
