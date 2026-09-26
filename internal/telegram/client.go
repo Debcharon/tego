@@ -101,11 +101,11 @@ func (t *Telegram) Copy(ctx context.Context, chatID, sourceID, messageID int64) 
 	return t.call(ctx, "copyMessage", map[string]any{"chat_id": chatID, "from_chat_id": sourceID, "message_id": messageID}, nil)
 }
 func (t *Telegram) SetCommands(ctx context.Context, adminID int64, language string) error {
-	user := [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"status", "Check bot status"}, {"notification", "Toggle confirmations"}}
-	admin := [][2]string{{"start", "Open admin panel"}, {"help", "Show help"}, {"status", "Show bot status"}, {"notification", "Toggle confirmations"}, {"info", "Show sender"}, {"ban", "Ban sender"}, {"unban", "Unban sender"}, {"banlist", "List banned users"}, {"unverify", "Revoke verification"}}
+	user := [][2]string{{"start", "Start the bot"}, {"help", "Show help"}, {"notification", "Toggle confirmations"}}
+	admin := [][2]string{{"start", "Open admin panel"}, {"help", "Show help"}, {"info", "Show sender"}, {"ban", "Ban sender"}, {"unban", "Unban sender"}}
 	if language == "zh_cn" || language == "zh_cn_moe" {
-		user = [][2]string{{"start", "开始使用"}, {"help", "查看帮助"}, {"status", "查看运行状态"}, {"notification", "切换消息确认提示"}}
-		admin = [][2]string{{"start", "打开管理面板"}, {"help", "查看帮助"}, {"status", "查看运行状态"}, {"notification", "切换消息确认提示"}, {"info", "查看发送者"}, {"ban", "封禁发送者"}, {"unban", "解除封禁"}, {"banlist", "查看封禁名单"}, {"unverify", "撤销验证"}}
+		user = [][2]string{{"start", "开始使用"}, {"help", "查看帮助"}, {"notification", "切换消息确认提示"}}
+		admin = [][2]string{{"start", "打开管理面板"}, {"help", "查看帮助"}, {"info", "查看发送者"}, {"ban", "封禁发送者"}, {"unban", "解除封禁"}}
 	}
 	encode := func(entries [][2]string) []map[string]string {
 		commands := make([]map[string]string, 0, len(entries))

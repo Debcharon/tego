@@ -55,7 +55,7 @@ Tests live alongside their packages. Run `go test ./...` and `go vet ./...` from
 | `/banlist` | Admin: browse banned users |
 | `/unverify` | Admin: reply to a forwarded message or provide user ID to revoke verification |
 
-The bot registers separate Telegram command menus for visitors and the admin at startup. The admin panel provides paginated user, banned-user, and verified-user lists; a user detail page with confirmation before changing bans or verification; status; and the admin's notification setting. Panel buttons work only in the configured admin's private chat.
+The bot registers separate Telegram command menus at startup: visitors see `/start`, `/help`, and `/notification`; the admin sees `/start`, `/help`, `/info`, `/ban`, and `/unban`. Other commands in the table remain available by typing them. The admin panel provides paginated user, banned-user, and verified-user lists; a user detail page with confirmation before changing bans or verification; status; and the admin's notification setting. Panel buttons work only in the configured admin's private chat.
 
 Messages, media, and captions supported by Telegram's `copyMessage` can be replied to. Admin replies do not expose the admin's account to the user. Preferences, message mappings, and polling offset are stored in `data/bot.db` (SQLite). The Go version starts with a new database and does not import Python JSON data. Run only one bot instance against a data directory and token.
 
