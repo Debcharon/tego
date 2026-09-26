@@ -20,6 +20,8 @@ type fakeAPI struct {
 	sent         []sentMessage
 	panelText    string
 	panelButtons [][]telegram.Button
+	editErr      error
+	editAttempts int
 	answerCount  int
 	forwarded    int
 	copied       int
@@ -266,6 +268,10 @@ func (f *fakeAPI) SendPanel(_ context.Context, _ int64, text string, buttons [][
 	return nil
 }
 func (f *fakeAPI) EditPanel(_ context.Context, _, _ int64, text string, buttons [][]telegram.Button) error {
+	f.editAttempts++
+	if f.editErr != nil {
+		return f.editErr
+	}
 	f.panelText, f.panelButtons = text, buttons
 	return nil
 }

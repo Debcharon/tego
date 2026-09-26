@@ -79,7 +79,7 @@ func (b *Bot) handleUpdate(ctx context.Context, update telegram.Update) error {
 		if done, err := b.store.Delivered(update.UpdateID); err != nil {
 			return err
 		} else if done {
-			return nil
+			return b.resumeCallback(ctx, update.CallbackQuery)
 		}
 		return b.callback(ctx, update.CallbackQuery, update.UpdateID)
 	}

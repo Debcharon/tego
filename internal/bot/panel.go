@@ -215,11 +215,38 @@ func (b *Bot) callback(ctx context.Context, query *telegram.CallbackQuery, updat
 			}
 		}
 	}
+	return b.editCallback(ctx, query.Message.MessageID, route)
+}
+
+// A committed action can be replayed when editing the panel failed. Refresh the
+// panel from the stored state without applying the action or notifying again.
+func (b *Bot) resumeCallback(ctx context.Context, query *telegram.CallbackQuery) error {
+	if query == nil || query.From.ID != b.adminID || query.Message == nil || query.Message.Chat.ID != b.adminID || query.Message.Chat.Type != "private" {
+		return nil
+	}
+	route := ""
+	if query.Data == "toggle" {
+		route = "settings"
+	} else if strings.HasPrefix(query.Data, "do:") {
+		parts := strings.Split(query.Data, ":")
+		if len(parts) == 3 && validPanelAction(parts[1]) {
+			if id, err := strconv.ParseInt(parts[2], 10, 64); err == nil && id > 0 && id != b.adminID {
+				route = "user:" + parts[2]
+			}
+		}
+	}
+	if route == "" {
+		return nil
+	}
+	return b.editCallback(ctx, query.Message.MessageID, route)
+}
+
+func (b *Bot) editCallback(ctx context.Context, messageID int64, route string) error {
 	text, buttons, err := b.panelPage(route)
 	if err != nil {
 		return err
 	}
-	err = b.api.EditPanel(ctx, b.adminID, query.Message.MessageID, text, buttons)
+	err = b.api.EditPanel(ctx, b.adminID, messageID, text, buttons)
 	var apiErr *telegram.APIError
 	if errors.As(err, &apiErr) && apiErr.Code == 400 && strings.Contains(apiErr.Description, "message is not modified") {
 		return nil

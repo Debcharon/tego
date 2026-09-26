@@ -117,3 +117,62 @@ func TestUnverifyCommand(t *testing.T) {
 		t.Fatal("missing confirmation")
 	}
 }
+
+func TestPanelRetriesEditWithoutRepeatingActions(t *testing.T) {
+	for _, action := range []string{"ban", "unverify", "toggle"} {
+		t.Run(action, func(t *testing.T) {
+			b, api := testBot(t)
+			if err := b.store.InitUser(2, "User"); err != nil {
+				t.Fatal(err)
+			}
+			if action == "unverify" {
+				now := time.Now().Unix()
+				nonce, _, _, err := b.store.Challenge(2, now)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if accepted, err := b.store.ConsumeProof(0, 2, nonce, now); err != nil || !accepted {
+					t.Fatalf("verify: %v %v", accepted, err)
+				}
+			}
+			data := "do:" + action + ":2"
+			if action == "toggle" {
+				data = "toggle"
+			}
+			update := panelUpdate(100, 1, data)
+			api.panelText = "old panel"
+			api.editErr = &telegram.APIError{Code: 429, RetryAfter: 1}
+			if err := b.handleUpdate(context.Background(), update); err == nil {
+				t.Fatal("edit error not returned")
+			}
+			if api.panelText != "old panel" {
+				t.Fatal("failed edit updated panel")
+			}
+			if done, err := b.store.Delivered(100); err != nil || !done {
+				t.Fatalf("action not committed: %v %v", done, err)
+			}
+			messagesSent := len(api.sent)
+			api.editErr = nil
+			if err := b.handleUpdate(context.Background(), update); err != nil {
+				t.Fatal(err)
+			}
+			if api.editAttempts != 2 || api.answerCount != 1 || len(api.sent) != messagesSent {
+				t.Fatalf("action repeated: edits=%d answers=%d messages=%d", api.editAttempts, api.answerCount, len(api.sent))
+			}
+			switch action {
+			case "ban":
+				if !b.store.Preference(2).Blocked || !strings.Contains(api.panelText, "Banned: yes") {
+					t.Fatal("ban panel not refreshed")
+				}
+			case "unverify":
+				if verified, err := b.store.IsVerified(2); err != nil || verified || !strings.Contains(api.panelText, "Verified: no") {
+					t.Fatal("verification panel not refreshed")
+				}
+			case "toggle":
+				if !b.store.Preference(1).Notification || !strings.Contains(api.panelText, b.text("notification_on")) {
+					t.Fatal("settings panel not refreshed")
+				}
+			}
+		})
+	}
+}
