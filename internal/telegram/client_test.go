@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -96,26 +97,27 @@ func TestSetCommandsScopes(t *testing.T) {
 	defer server.Close()
 	api := New("test")
 	api.baseURL = server.URL + "/"
-	if err := api.SetCommands(context.Background(), 42, "en"); err != nil {
-		t.Fatal(err)
-	}
-	if len(calls) != 2 {
-		t.Fatalf("got %d calls", len(calls))
-	}
-	visitorScope := calls[0]["scope"].(map[string]any)
-	adminScope := calls[1]["scope"].(map[string]any)
-	if visitorScope["type"] != "all_private_chats" || adminScope["type"] != "chat" || adminScope["chat_id"] != float64(42) {
-		t.Fatalf("bad scopes: %+v", calls)
-	}
-	has := func(index int, command string) bool {
-		for _, raw := range calls[index]["commands"].([]any) {
-			if raw.(map[string]any)["command"] == command {
-				return true
+	for _, language := range []string{"en", "zh_cn", "zh_cn_moe"} {
+		calls = nil
+		if err := api.SetCommands(context.Background(), 42, language); err != nil {
+			t.Fatal(err)
+		}
+		if len(calls) != 2 {
+			t.Fatalf("%s: got %d calls", language, len(calls))
+		}
+		visitorScope := calls[0]["scope"].(map[string]any)
+		adminScope := calls[1]["scope"].(map[string]any)
+		if visitorScope["type"] != "all_private_chats" || adminScope["type"] != "chat" || adminScope["chat_id"] != float64(42) {
+			t.Fatalf("%s: bad scopes: %+v", language, calls)
+		}
+		for index, expected := range [][]string{{"start", "help", "notification"}, {"start", "help", "info", "ban", "unban"}} {
+			var actual []string
+			for _, raw := range calls[index]["commands"].([]any) {
+				actual = append(actual, raw.(map[string]any)["command"].(string))
+			}
+			if !reflect.DeepEqual(actual, expected) {
+				t.Errorf("%s: menu %d: got %v, want %v", language, index, actual, expected)
 			}
 		}
-		return false
-	}
-	if has(0, "ban") || has(0, "banlist") || has(0, "unverify") || has(0, "ping") || !has(0, "status") || !has(1, "ban") || !has(1, "banlist") || !has(1, "unverify") || has(1, "ping") {
-		t.Fatalf("bad commands: %+v", calls)
 	}
 }
