@@ -6,7 +6,7 @@
 
 ## 配置与运行
 
-安装 Go 1.25 或更新版本并创建 Telegram 机器人，通过环境变量配置：
+安装 Go 1.27.1 或更新版本并创建 Telegram 机器人，通过环境变量配置：
 
 ```dotenv
 BOT_TOKEN=your_bot_token
