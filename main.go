@@ -15,7 +15,7 @@ import (
 	"github.com/Debcharon/tego/internal/telegram"
 )
 
-var version = "v1.20260926.0-dev"
+var version = "v1.20261002.0"
 
 func main() {
 	if err := run(); err != nil {
