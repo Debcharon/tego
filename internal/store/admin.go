@@ -20,18 +20,30 @@ type Stats struct {
 	Users, Banned, Verified, ReplyableMessages int64
 }
 
+func userFilter(filter string) string {
+	switch filter {
+	case "blocked":
+		return ` WHERE p.blocked=1`
+	case "verified":
+		return ` WHERE verified_users.user_id IS NOT NULL`
+	default:
+		return ""
+	}
+}
+
+func (s *Store) UserCount(filter string) (int, error) {
+	var count int
+	err := s.db.QueryRow(`SELECT COUNT(*) FROM preferences p LEFT JOIN verified_users ON verified_users.user_id=p.user_id` + userFilter(filter)).Scan(&count)
+	return count, err
+}
+
 func (s *Store) Users(page int, filter string) ([]UserRecord, bool, error) {
 	if page < 0 || page > 100000 {
 		return nil, false, nil
 	}
 	query := `SELECT p.user_id,p.name,p.blocked,p.last_seen,verified_users.user_id IS NOT NULL
 		FROM preferences p LEFT JOIN verified_users ON verified_users.user_id=p.user_id`
-	switch filter {
-	case "blocked":
-		query += ` WHERE p.blocked=1`
-	case "verified":
-		query += ` WHERE verified_users.user_id IS NOT NULL`
-	}
+	query += userFilter(filter)
 	query += ` ORDER BY p.last_seen DESC,p.user_id DESC LIMIT ? OFFSET ?`
 	rows, err := s.db.Query(query, PageSize+1, page*PageSize)
 	if err != nil {

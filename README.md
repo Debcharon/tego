@@ -6,7 +6,7 @@ A single-admin Telegram message relay bot written in Go. The admin replies to fo
 
 ## Setup
 
-Install Go 1.25 or later and create a Telegram bot. Configure the process environment:
+Install Go 1.27.1 or later and create a Telegram bot. Configure the process environment:
 
 ```dotenv
 BOT_TOKEN=your_bot_token
