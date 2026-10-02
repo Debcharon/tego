@@ -7,10 +7,35 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Debcharon/tego/internal/store"
 	"github.com/Debcharon/tego/internal/telegram"
 )
 
 func button(text, data string) telegram.Button { return telegram.Button{Text: text, Data: data} }
+
+// Carry the originating list in callback data so each panel keeps its own navigation.
+// Routes without an origin remain valid for panels sent by older versions.
+func splitPanelRoute(data string) (route, origin string, valid bool) {
+	route, origin, found := strings.Cut(data, "|")
+	if found {
+		parts := strings.Split(origin, ":")
+		if len(parts) != 2 || (parts[0] != "users" && parts[0] != "bans" && parts[0] != "verified") {
+			return "", "", false
+		}
+		page, err := strconv.Atoi(parts[1])
+		if err != nil || page < 0 || page > 100000 {
+			return "", "", false
+		}
+	}
+	return route, origin, true
+}
+
+func panelRoute(route, origin string) string {
+	if origin != "" {
+		return route + "|" + origin
+	}
+	return route
+}
 
 func (b *Bot) panel(ctx context.Context, chatID int64, route string) error {
 	text, buttons, err := b.panelPage(route)
@@ -22,6 +47,13 @@ func (b *Bot) panel(ctx context.Context, chatID int64, route string) error {
 
 func (b *Bot) panelPage(route string) (string, [][]telegram.Button, error) {
 	back := []telegram.Button{button(b.text("panel_back"), "home")}
+	route, origin, valid := splitPanelRoute(route)
+	if !valid {
+		return b.text("panel_invalid"), [][]telegram.Button{back}, nil
+	}
+	if origin != "" {
+		back[0].Data = origin
+	}
 	switch {
 	case route == "home":
 		return fmt.Sprintf(b.text("panel_home"), b.version), [][]telegram.Button{
@@ -49,6 +81,9 @@ func (b *Bot) panelPage(route string) (string, [][]telegram.Button, error) {
 		}, nil
 	case strings.HasPrefix(route, "users:") || strings.HasPrefix(route, "bans:") || strings.HasPrefix(route, "verified:"):
 		parts := strings.Split(route, ":")
+		if len(parts) != 2 {
+			return b.text("panel_invalid"), [][]telegram.Button{back}, nil
+		}
 		page, err := strconv.Atoi(parts[1])
 		if err != nil || page < 0 || page > 100000 {
 			return b.text("panel_invalid"), [][]telegram.Button{back}, nil
@@ -61,11 +96,24 @@ func (b *Bot) panelPage(route string) (string, [][]telegram.Button, error) {
 		if parts[0] == "verified" {
 			filter, title = "verified", b.text("panel_verified")
 		}
+		total, err := b.store.UserCount(filter)
+		if err != nil {
+			return "", nil, err
+		}
+		pages := (total + store.PageSize - 1) / store.PageSize
+		if pages == 0 {
+			pages = 1
+		}
+		// An action can remove the last user from the originating filtered page.
+		if page >= pages {
+			page = pages - 1
+		}
+		listRoute := fmt.Sprintf("%s:%d", parts[0], page)
 		users, more, err := b.store.Users(page, filter)
 		if err != nil {
 			return "", nil, err
 		}
-		text := fmt.Sprintf("%s · %d\n", title, page+1)
+		text := title + "\n" + fmt.Sprintf(b.text("panel_list_summary"), page+1, pages, total) + "\n" + b.text("panel_list_legend") + "\n"
 		if len(users) == 0 {
 			text += b.text("panel_empty")
 		}
@@ -75,7 +123,14 @@ func (b *Bot) panelPage(route string) (string, [][]telegram.Button, error) {
 			if len([]rune(name)) > 24 {
 				name = string([]rune(name)[:24]) + "…"
 			}
-			buttons = append(buttons, []telegram.Button{button(fmt.Sprintf("%s · %d", name, u.ID), fmt.Sprintf("user:%d", u.ID))})
+			markers := ""
+			if u.Blocked {
+				markers += "🚫 "
+			}
+			if u.Verified {
+				markers += "✓ "
+			}
+			buttons = append(buttons, []telegram.Button{button(fmt.Sprintf("%s%s · %d", markers, name, u.ID), panelRoute(fmt.Sprintf("user:%d", u.ID), listRoute))})
 		}
 		nav := []telegram.Button{}
 		if page > 0 {
@@ -115,9 +170,9 @@ func (b *Bot) panelPage(route string) (string, [][]telegram.Button, error) {
 			if u.Blocked {
 				action, label = "unban", b.text("panel_unban")
 			}
-			buttons = append(buttons, []telegram.Button{button(label, fmt.Sprintf("confirm:%s:%d", action, id))})
+			buttons = append(buttons, []telegram.Button{button(label, panelRoute(fmt.Sprintf("confirm:%s:%d", action, id), origin))})
 			if u.Verified {
-				buttons = append(buttons, []telegram.Button{button(b.text("panel_unverify"), fmt.Sprintf("confirm:unverify:%d", id))})
+				buttons = append(buttons, []telegram.Button{button(b.text("panel_unverify"), panelRoute(fmt.Sprintf("confirm:unverify:%d", id), origin))})
 			}
 		}
 		buttons = append(buttons, back)
@@ -139,7 +194,7 @@ func (b *Bot) panelPage(route string) (string, [][]telegram.Button, error) {
 			return b.text("user_not_found"), [][]telegram.Button{back}, nil
 		}
 		return fmt.Sprintf(b.text("panel_confirm"), b.panelActionLabel(parts[1]), u.Name, id), [][]telegram.Button{
-			{button(b.text("panel_confirm_yes"), "do:"+parts[1]+":"+parts[2]), button(b.text("panel_cancel"), "user:"+parts[2])},
+			{button(b.text("panel_confirm_yes"), panelRoute("do:"+parts[1]+":"+parts[2], origin)), button(b.text("panel_cancel"), panelRoute("user:"+parts[2], origin))},
 		}, nil
 	}
 	return b.text("panel_invalid"), [][]telegram.Button{back}, nil
@@ -170,7 +225,10 @@ func (b *Bot) callback(ctx context.Context, query *telegram.CallbackQuery, updat
 	if err := b.api.AnswerCallback(ctx, query.ID, "", false); err != nil {
 		return err
 	}
-	route := query.Data
+	route, origin, valid := splitPanelRoute(query.Data)
+	if !valid {
+		return b.editCallback(ctx, query.Message.MessageID, "invalid")
+	}
 	if route == "toggle" {
 		p := b.store.Preference(b.adminID)
 		p.Notification = !p.Notification
@@ -215,7 +273,7 @@ func (b *Bot) callback(ctx context.Context, query *telegram.CallbackQuery, updat
 			}
 		}
 	}
-	return b.editCallback(ctx, query.Message.MessageID, route)
+	return b.editCallback(ctx, query.Message.MessageID, panelRoute(route, origin))
 }
 
 // A committed action can be replayed when editing the panel failed. Refresh the
@@ -225,10 +283,14 @@ func (b *Bot) resumeCallback(ctx context.Context, query *telegram.CallbackQuery)
 		return nil
 	}
 	route := ""
-	if query.Data == "toggle" {
+	data, origin, valid := splitPanelRoute(query.Data)
+	if !valid {
+		return nil
+	}
+	if data == "toggle" {
 		route = "settings"
-	} else if strings.HasPrefix(query.Data, "do:") {
-		parts := strings.Split(query.Data, ":")
+	} else if strings.HasPrefix(data, "do:") {
+		parts := strings.Split(data, ":")
 		if len(parts) == 3 && validPanelAction(parts[1]) {
 			if id, err := strconv.ParseInt(parts[2], 10, 64); err == nil && id > 0 && id != b.adminID {
 				route = "user:" + parts[2]
@@ -238,7 +300,7 @@ func (b *Bot) resumeCallback(ctx context.Context, query *telegram.CallbackQuery)
 	if route == "" {
 		return nil
 	}
-	return b.editCallback(ctx, query.Message.MessageID, route)
+	return b.editCallback(ctx, query.Message.MessageID, panelRoute(route, origin))
 }
 
 func (b *Bot) editCallback(ctx context.Context, messageID int64, route string) error {

@@ -78,6 +78,11 @@ func TestUserListsAndRevokeVerification(t *testing.T) {
 	if _, err := s.db.Exec(`INSERT INTO verified_users VALUES (2,?)`, time.Now().Unix()); err != nil {
 		t.Fatal(err)
 	}
+	for filter, want := range map[string]int{"all": 10, "blocked": 1, "verified": 1} {
+		if got, err := s.UserCount(filter); err != nil || got != want {
+			t.Fatalf("count %s: %d, want %d: %v", filter, got, want, err)
+		}
+	}
 	users, more, err := s.Users(0, "all")
 	if err != nil || !more || len(users) != PageSize {
 		t.Fatalf("first page: %d %v %v", len(users), more, err)
@@ -99,6 +104,9 @@ func TestUserListsAndRevokeVerification(t *testing.T) {
 	}
 	if yes, err := s.IsVerified(2); err != nil || yes {
 		t.Fatalf("still verified: %v %v", yes, err)
+	}
+	if count, err := s.UserCount("verified"); err != nil || count != 0 {
+		t.Fatalf("verified count after revoke: %d %v", count, err)
 	}
 	if done, err := s.Delivered(100); err != nil || !done {
 		t.Fatalf("revoke marker: %v %v", done, err)

@@ -50,5 +50,7 @@
     "panel_unverify": "撤销验证",
     "panel_confirm": "确认执行 %s 吗？对象：%s（%d）",
     "panel_confirm_yes": "确认",
-    "panel_cancel": "取消"
+    "panel_cancel": "取消",
+    "panel_list_summary": "第 %d/%d 页 · 共 %d 人",
+    "panel_list_legend": "🚫 已封禁 · ✓ 已验证"
 }

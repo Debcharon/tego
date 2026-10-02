@@ -50,5 +50,7 @@
     "panel_unverify": "Revoke verification",
     "panel_confirm": "Confirm %s for %s (%d)?",
     "panel_confirm_yes": "Confirm",
-    "panel_cancel": "Cancel"
+    "panel_cancel": "Cancel",
+    "panel_list_summary": "Page %d/%d · %d users",
+    "panel_list_legend": "🚫 Banned · ✓ Verified"
 }
