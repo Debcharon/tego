@@ -52,5 +52,6 @@
     "panel_confirm_yes": "确认",
     "panel_cancel": "取消",
     "panel_list_summary": "第 %d/%d 页 · 共 %d 人",
-    "panel_list_legend": "🚫 已封禁 · ✓ 已验证"
+    "panel_list_legend": "🚫 已封禁 · ✓ 已验证",
+    "admin_protected": "不能封禁、解封 Master，也不能撤销 Master 的验证哟。"
 }

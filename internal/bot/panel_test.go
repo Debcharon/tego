@@ -298,3 +298,54 @@ func TestPanelEmptyListsAndInvalidOrigins(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminProtectedFromCommandsAndPanel(t *testing.T) {
+	for _, action := range []string{"ban", "unban", "unverify"} {
+		for _, reply := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/reply=%t", action, reply), func(t *testing.T) {
+				b, api := testBot(t)
+				ctx := context.Background()
+				initial := store.Preference{Name: "User", Blocked: action == "unban"}
+				if err := b.store.SetPreference(1, initial); err != nil {
+					t.Fatal(err)
+				}
+				now := time.Now().Unix()
+				nonce, _, _, err := b.store.Challenge(1, now)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if ok, err := b.store.ConsumeProof(0, 1, nonce, now); err != nil || !ok {
+					t.Fatalf("verify: %v %v", ok, err)
+				}
+				m := privateMessage(1, 1, "/"+action+" 1")
+				if reply {
+					if err := b.store.Link(0, 77, 1); err != nil {
+						t.Fatal(err)
+					}
+					m.Text = "/" + action
+					m.ReplyToMessage = &telegram.Message{MessageID: 77}
+				}
+				if err := b.handle(ctx, m, 1); err != nil {
+					t.Fatal(err)
+				}
+				if len(api.sent) != 1 || api.sent[0].text != b.text("admin_protected") {
+					t.Fatal("missing admin protection response")
+				}
+				for i, route := range []string{"user:1|users:2", "confirm:" + action + ":1|users:2", "do:" + action + ":1|users:2"} {
+					if err := b.handleUpdate(ctx, panelUpdate(int64(i+2), 1, route)); err != nil {
+						t.Fatal(err)
+					}
+					if i == 0 && len(api.panelButtons) != 1 {
+						t.Fatal("admin detail exposes mutation buttons")
+					}
+				}
+				if b.store.Preference(1) != initial {
+					t.Fatal("admin preference changed")
+				}
+				if yes, err := b.store.IsVerified(1); err != nil || !yes {
+					t.Fatalf("admin verification changed: %v %v", yes, err)
+				}
+			})
+		}
+	}
+}

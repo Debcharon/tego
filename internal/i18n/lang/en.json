@@ -52,5 +52,6 @@
     "panel_confirm_yes": "Confirm",
     "panel_cancel": "Cancel",
     "panel_list_summary": "Page %d/%d · %d users",
-    "panel_list_legend": "🚫 Banned · ✓ Verified"
+    "panel_list_legend": "🚫 Banned · ✓ Verified",
+    "admin_protected": "The administrator cannot be banned, unbanned, or have verification revoked."
 }

@@ -107,7 +107,7 @@ func (b *Bot) command(ctx context.Context, m *telegram.Message, command string, 
 			return b.say(ctx, admin, "reply_or_enter_id")
 		}
 		if sender == admin {
-			return b.say(ctx, admin, "panel_invalid")
+			return b.say(ctx, admin, "admin_protected")
 		}
 		if _, exists := b.store.LookupPreference(sender); !exists {
 			return b.say(ctx, admin, "user_not_found")
@@ -147,6 +147,9 @@ func (b *Bot) command(ctx context.Context, m *telegram.Message, command string, 
 			return b.say(ctx, admin, "reply_or_enter_id")
 		} else {
 			return b.say(ctx, admin, "reply_to_no_message")
+		}
+		if sender == admin && command != "info" {
+			return b.say(ctx, admin, "admin_protected")
 		}
 		p, exists := b.store.LookupPreference(sender)
 		if !exists {
